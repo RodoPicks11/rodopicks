@@ -1,0 +1,412 @@
+{
+  "_nota": "EJEMPLO CON DATOS FICTICIOS DE PRUEBA para mostrar la estructura. Nombres y números inventados; la respuesta real trae datos de Sleeper.",
+  "esquema": "rodopicks.content.v1",
+  "app": "RodoPicks Fantasy NFL",
+  "sitio": "https://rodopicks.netlify.app",
+  "temporada": "2026",
+  "semana": 10,
+  "tipoTemporada": "regular",
+  "generadoEn": "2026-11-11T18:00:00.000Z",
+  "datosHasta": {
+    "ultimaSemanaConEstadisticas": 9,
+    "proyeccionesDeLaSemana": 10
+  },
+  "formato": {
+    "puntuacion": "PPR (1 punto por recepción)",
+    "supuestosLiga": {
+      "equipos": 12,
+      "alineacion": [
+        "QB",
+        "RB",
+        "RB",
+        "WR",
+        "WR",
+        "TE",
+        "FLEX",
+        "K",
+        "DEF"
+      ]
+    },
+    "nota": "Contenido general para difusión: no usa ninguna liga ni usuario. Los niveles (titular, flex, banca) suponen una liga de 12 equipos."
+  },
+  "validacion": {
+    "estado": "ok",
+    "resumen": "Todos los chequeos críticos pasaron",
+    "chequeos": [
+      {
+        "chequeo": "temporada_regular",
+        "ok": true,
+        "critico": true,
+        "detalle": "Sleeper reporta temporada 2026, tipo \"regular\""
+      },
+      {
+        "chequeo": "semana_seleccionada",
+        "ok": true,
+        "critico": true,
+        "detalle": "Semana 10: es la semana actual según Sleeper"
+      },
+      {
+        "chequeo": "estadisticas_completas",
+        "ok": true,
+        "critico": true,
+        "detalle": "Semanas 1 a 9 con estadísticas"
+      },
+      {
+        "chequeo": "datos_al_dia",
+        "ok": true,
+        "critico": true,
+        "detalle": "Última semana con estadísticas: 9"
+      },
+      {
+        "chequeo": "calendario_de_la_semana",
+        "ok": true,
+        "critico": true,
+        "detalle": "14 partidos en la semana 10"
+      },
+      {
+        "chequeo": "proyecciones_de_la_semana",
+        "ok": true,
+        "critico": true,
+        "detalle": "416 jugadores con proyección PPR de la semana 10"
+      },
+      {
+        "chequeo": "rivales_coinciden",
+        "ok": true,
+        "critico": false,
+        "detalle": "Rival del calendario y de la proyección coinciden"
+      },
+      {
+        "chequeo": "mercado",
+        "ok": true,
+        "critico": false,
+        "detalle": "Valores de FantasyCalc disponibles"
+      },
+      {
+        "chequeo": "tendencias_24h",
+        "ok": true,
+        "critico": false,
+        "detalle": "40 jugadores en tendencia de altas"
+      }
+    ],
+    "camposFaltantes": []
+  },
+  "fuentes": [
+    {
+      "nombre": "Sleeper",
+      "uso": "estado de la temporada, jugadores, estadísticas, proyecciones, calendario y tendencias",
+      "url": "https://docs.sleeper.com",
+      "estado": "ok"
+    },
+    {
+      "nombre": "Sleeper (calendario)",
+      "uso": "rivales de la semana y puntos que permite cada defensa",
+      "url": "https://api.sleeper.app",
+      "estado": "ok"
+    },
+    {
+      "nombre": "Sleeper (proyecciones)",
+      "uso": "proyecciones PPR de la semana 10",
+      "url": "https://api.sleeper.app",
+      "estado": "ok"
+    },
+    {
+      "nombre": "FantasyCalc",
+      "uso": "tendencia del valor de mercado (redraft, 1 QB, PPR, 12 equipos)",
+      "url": "https://fantasycalc.com",
+      "estado": "ok"
+    }
+  ],
+  "descansan": {
+    "semana": 10,
+    "equipos": [
+      "CHI",
+      "DEN",
+      "PHI",
+      "TB"
+    ]
+  },
+  "rankings": {
+    "QB": [
+      {
+        "rank": 1,
+        "jugador": "Kendall Hargrove",
+        "posicion": "QB",
+        "equipo": "PIT",
+        "rival": "CIN",
+        "proyeccionPPR": 29,
+        "puntosEstimados": 29,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 28.5,
+        "ultimos3PPR": 27.3,
+        "partidosJugados": 8,
+        "defensaRival": {
+          "lugarQueMasPermite": 32,
+          "puntosPermitidosPorPartido": 30.2,
+          "lectura": "difícil"
+        },
+        "lesion": null,
+        "semanaDescanso": 9,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "QB1 de la semana por proyección de 29 pts PPR contra CIN (defensa difícil: 32° que más puntos permite a QB, 30.2 por partido); promedia 28.5 en 8 partidos y 27.3 en los últimos 3."
+      },
+      {
+        "rank": 2,
+        "jugador": "Tyrell Holloway",
+        "posicion": "QB",
+        "equipo": "LV",
+        "rival": "HOU",
+        "proyeccionPPR": 27.7,
+        "puntosEstimados": 27.7,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 27.5,
+        "ultimos3PPR": 24.4,
+        "partidosJugados": 9,
+        "defensaRival": {
+          "lugarQueMasPermite": 2,
+          "puntosPermitidosPorPartido": 42.2,
+          "lectura": "favorable"
+        },
+        "lesion": null,
+        "semanaDescanso": 13,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "QB2 de la semana por proyección de 27.7 pts PPR contra HOU (defensa favorable: 2° que más puntos permite a QB, 42.2 por partido); promedia 27.5 en 9 partidos y 24.4 en los últimos 3."
+      }
+    ],
+    "RB": [
+      {
+        "rank": 1,
+        "jugador": "Austin Hargrove",
+        "posicion": "RB",
+        "equipo": "NYJ",
+        "rival": "JAX",
+        "proyeccionPPR": 19,
+        "puntosEstimados": 19,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 15.4,
+        "ultimos3PPR": 17.1,
+        "partidosJugados": 9,
+        "defensaRival": {
+          "lugarQueMasPermite": 18,
+          "puntosPermitidosPorPartido": 27.9,
+          "lectura": "neutral"
+        },
+        "lesion": null,
+        "semanaDescanso": 13,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "RB1 de la semana por proyección de 19 pts PPR contra JAX (defensa neutral: 18° que más puntos permite a RB, 27.9 por partido); promedia 15.4 en 9 partidos y 17.1 en los últimos 3."
+      },
+      {
+        "rank": 2,
+        "jugador": "Jalen Pemberton",
+        "posicion": "RB",
+        "equipo": "JAX",
+        "rival": "NYJ",
+        "proyeccionPPR": 18,
+        "puntosEstimados": 18,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 16.8,
+        "ultimos3PPR": 15.4,
+        "partidosJugados": 8,
+        "defensaRival": {
+          "lugarQueMasPermite": 31,
+          "puntosPermitidosPorPartido": 22.1,
+          "lectura": "difícil"
+        },
+        "lesion": null,
+        "semanaDescanso": 7,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "RB2 de la semana por proyección de 18 pts PPR contra NYJ (defensa difícil: 31° que más puntos permite a RB, 22.1 por partido); promedia 16.8 en 8 partidos y 15.4 en los últimos 3."
+      }
+    ],
+    "WR": [
+      {
+        "rank": 1,
+        "jugador": "Devin Brennan",
+        "posicion": "WR",
+        "equipo": "SEA",
+        "rival": "LAR",
+        "proyeccionPPR": 20.1,
+        "puntosEstimados": 20.1,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 16.3,
+        "ultimos3PPR": 17.8,
+        "partidosJugados": 9,
+        "defensaRival": {
+          "lugarQueMasPermite": 26,
+          "puntosPermitidosPorPartido": 28.9,
+          "lectura": "difícil"
+        },
+        "lesion": null,
+        "semanaDescanso": 11,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "WR1 de la semana por proyección de 20.1 pts PPR contra LAR (defensa difícil: 26° que más puntos permite a WR, 28.9 por partido); promedia 16.3 en 9 partidos y 17.8 en los últimos 3."
+      }
+    ],
+    "TE": [
+      {
+        "rank": 1,
+        "jugador": "Trey Pemberton",
+        "posicion": "TE",
+        "equipo": "LV",
+        "rival": "HOU",
+        "proyeccionPPR": 12.7,
+        "puntosEstimados": 12.7,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 11.8,
+        "ultimos3PPR": 11.1,
+        "partidosJugados": 9,
+        "defensaRival": {
+          "lugarQueMasPermite": 2,
+          "puntosPermitidosPorPartido": 17.3,
+          "lectura": "favorable"
+        },
+        "lesion": null,
+        "semanaDescanso": 13,
+        "camposFaltantes": [],
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "TE1 de la semana por proyección de 12.7 pts PPR contra HOU (defensa favorable: 2° que más puntos permite a TE, 17.3 por partido); promedia 11.8 en 9 partidos y 11.1 en los últimos 3."
+      }
+    ]
+  },
+  "startSit": {
+    "arrancar": [
+      {
+        "jugador": "Trey Brennan",
+        "posicion": "QB",
+        "equipo": "SF",
+        "rival": "CLE",
+        "proyeccionPPR": 26.8,
+        "puntosEstimados": 26.8,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 21.7,
+        "ultimos3PPR": 21.8,
+        "partidosJugados": 8,
+        "defensaRival": {
+          "lugarQueMasPermite": 6,
+          "puntosPermitidosPorPartido": 40,
+          "lectura": "favorable"
+        },
+        "lesion": null,
+        "semanaDescanso": 8,
+        "camposFaltantes": [],
+        "rankSemana": "QB3",
+        "recomendacion": "Arrancar",
+        "nivel": "Arráncalo sin pensar",
+        "justificacion": "Proyección de 26.8 pts PPR contra CLE (defensa favorable: 6° que más puntos permite a QB, 40 por partido), 5.1 pts arriba de su promedio de 21.7. Esta semana queda como QB3, nivel titular en una liga de 12."
+      }
+    ],
+    "sentar": [
+      {
+        "jugador": "Trey Vance",
+        "posicion": "QB",
+        "equipo": "NYJ",
+        "rival": "JAX",
+        "proyeccionPPR": 18.1,
+        "puntosEstimados": 18.1,
+        "origenEstimado": "proyeccion_sleeper",
+        "promedioPPR": 24,
+        "ultimos3PPR": 25.7,
+        "partidosJugados": 9,
+        "defensaRival": {
+          "lugarQueMasPermite": 14,
+          "puntosPermitidosPorPartido": 37.3,
+          "lectura": "neutral"
+        },
+        "lesion": null,
+        "semanaDescanso": 13,
+        "camposFaltantes": [],
+        "rankSemana": "QB27",
+        "recomendacion": "Sentar",
+        "nivel": "Siéntalo",
+        "justificacion": "Suele ser QB10 por promedio (24), pero esta semana: proyección de 18.1 pts PPR contra JAX (defensa neutral: 14° que más puntos permite a QB, 37.3 por partido). Cae a QB27, por debajo de lo que alinea una liga de 12."
+      }
+    ],
+    "criterio": "Arrancar: proyectados muy arriba de su promedio y en nivel titular. Sentar: titulares habituales que esta semana caen a nivel flex o banca."
+  },
+  "waivers": [
+    {
+      "jugador": "Kendall Rowland",
+      "posicion": "K",
+      "equipo": "ARI",
+      "rival": "WAS",
+      "proyeccionPPR": 11,
+      "puntosEstimados": 11,
+      "origenEstimado": "proyeccion_sleeper",
+      "promedioPPR": 12.7,
+      "ultimos3PPR": 13.7,
+      "partidosJugados": 9,
+      "defensaRival": {
+        "lugarQueMasPermite": 28,
+        "puntosPermitidosPorPartido": 9.6,
+        "lectura": "difícil"
+      },
+      "lesion": null,
+      "semanaDescanso": 14,
+      "camposFaltantes": [],
+      "altas24h": 5823,
+      "bajas24h": 0,
+      "descansaEstaSemana": false,
+      "justificacion": "5,823 altas en Sleeper en las últimas 24 h; promedia 12.7 pts PPR y 13.7 en los últimos 3; proyección de 11 esta semana."
+    }
+  ],
+  "sleepers": [
+    {
+      "jugador": "Tyrell Brennan",
+      "posicion": "TE",
+      "equipo": "NE",
+      "rival": "LAC",
+      "proyeccionPPR": 9.7,
+      "puntosEstimados": 9.7,
+      "origenEstimado": "proyeccion_sleeper",
+      "promedioPPR": 7,
+      "ultimos3PPR": 8.2,
+      "partidosJugados": 9,
+      "defensaRival": {
+        "lugarQueMasPermite": 19,
+        "puntosPermitidosPorPartido": 14.8,
+        "lectura": "neutral"
+      },
+      "lesion": null,
+      "semanaDescanso": 11,
+      "camposFaltantes": [],
+      "senales": [
+        "Su valor de mercado viene subiendo (FantasyCalc, últimos 30 días)",
+        "42,356 altas en Sleeper en 24 h",
+        "Proyección de 9.7 pts PPR esta semana"
+      ],
+      "justificacion": "Su valor de mercado viene subiendo (FantasyCalc, últimos 30 días). 42,356 altas en Sleeper en 24 h. Proyección de 9.7 pts PPR esta semana."
+    }
+  ],
+  "riesgoDeDecepcionar": [
+    {
+      "jugador": "Darius Rowland",
+      "posicion": "RB",
+      "equipo": "NO",
+      "rival": "GB",
+      "proyeccionPPR": 11.9,
+      "puntosEstimados": 11.9,
+      "origenEstimado": "proyeccion_sleeper",
+      "promedioPPR": 15.8,
+      "ultimos3PPR": 16.2,
+      "partidosJugados": 8,
+      "defensaRival": {
+        "lugarQueMasPermite": 12,
+        "puntosPermitidosPorPartido": 28.5,
+        "lectura": "neutral"
+      },
+      "lesion": null,
+      "semanaDescanso": 8,
+      "camposFaltantes": [],
+      "rankSemana": "RB28",
+      "recomendacion": "Arrancar con expectativas bajas",
+      "nivel": "Arráncalo",
+      "justificacion": "Promedia 15.8 (RB13 por promedio), pero esta semana: proyección de 11.9 pts PPR contra GB (defensa neutral: 12° que más puntos permite a RB, 28.5 por partido), 3.9 pts menos de lo normal. Sigue siendo titular, con riesgo de decepcionar."
+    }
+  ],
+  "avisoLegal": "Datos públicos de Sleeper y FantasyCalc. Contenido de entretenimiento; las proyecciones no son garantía."
+}

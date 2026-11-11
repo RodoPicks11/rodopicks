@@ -1,0 +1,7 @@
+{
+  "name": "rodopicks",
+  "private": true,
+  "type": "module",
+  "description": "RodoPicks Fantasy NFL: tablero web y endpoint de contenido para Instagram",
+  "engines": { "node": ">=18" }
+}

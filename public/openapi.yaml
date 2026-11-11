@@ -1,0 +1,80 @@
+openapi: 3.1.0
+info:
+  title: RodoPicks Fantasy NFL · Contenido
+  version: 1.0.0
+  description: >
+    Análisis Fantasy NFL público de RodoPicks (formato PPR) listo para crear contenido:
+    rankings por posición, start/sit, waivers, sleepers y jugadores con riesgo de decepcionar.
+    Solo lectura, sin autenticación y sin datos de ligas ni usuarios.
+servers:
+  - url: https://rodopicks.netlify.app
+paths:
+  /api/content/latest:
+    get:
+      operationId: getRodoPicksContent
+      summary: Obtiene el análisis Fantasy más reciente de RodoPicks
+      description: >
+        Devuelve el análisis de la semana NFL actual (o de la semana indicada).
+        Antes de usar los datos, revisar validacion.estado y validacion.camposFaltantes:
+        si un dato viene en null, no existe y no se debe inventar.
+      parameters:
+        - name: week
+          in: query
+          required: false
+          description: Semana NFL (1 a 18). Si se omite, se usa la semana actual según Sleeper.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 18
+        - name: top
+          in: query
+          required: false
+          description: Cuántos jugadores incluir por posición en los rankings (1 a 50). Para ChatGPT se recomienda 12.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Contenido Fantasy de la semana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema: { type: string }
+                  temporada: { type: string }
+                  semana: { type: integer }
+                  generadoEn: { type: string, format: date-time }
+                  datosHasta: { type: object }
+                  formato: { type: object }
+                  validacion:
+                    type: object
+                    properties:
+                      estado: { type: string, enum: [ok, parcial] }
+                      resumen: { type: string }
+                      chequeos: { type: array, items: { type: object } }
+                      camposFaltantes: { type: array, items: { type: object } }
+                  fuentes: { type: array, items: { type: object } }
+                  descansan: { type: object }
+                  rankings:
+                    type: object
+                    properties:
+                      QB: { type: array, items: { type: object } }
+                      RB: { type: array, items: { type: object } }
+                      WR: { type: array, items: { type: object } }
+                      TE: { type: array, items: { type: object } }
+                  startSit:
+                    type: object
+                    properties:
+                      arrancar: { type: array, items: { type: object } }
+                      sentar: { type: array, items: { type: object } }
+                      criterio: { type: string }
+                  waivers: { type: array, items: { type: object } }
+                  sleepers: { type: array, items: { type: object } }
+                  riesgoDeDecepcionar: { type: array, items: { type: object } }
+                  avisoLegal: { type: string }
+        '400':
+          description: Parámetro inválido
+        '502':
+          description: No se pudieron obtener los datos de las fuentes en este momento
