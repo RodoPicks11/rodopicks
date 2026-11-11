@@ -1160,7 +1160,7 @@ function ssGenHTML(){
   const tot=list.length;list=list.slice(0,show);
   const card=(arr,title,sub,kind)=>`<div class="card"><h2>${title}</h2><p class="sub" style="margin-top:-6px">${sub}</p>${arr.length?arr.map(p=>`<div class="rec"><div>${photo(p,34)} ${pp(p.pos)} ${pname(p)} <span class="sub">· ${ownerTxt(p)}</span><div class="why">${p.opp?(dvpTag(p)||'vs '+esc(p.opp))+' · ':''}proy. <b style="color:var(--text)">${f1(p._pr)}</b> vs ${f1(p.avg)} de promedio · ${p.pos}${p._rk} de la semana</div></div><div class="gain" style="color:var(--${kind==='t'?'bad':'good'})">${kind==='t'?'':'+'}${f1(p._pr-p.avg)}</div></div>`).join(''):'<p class="sub">Nada destacable esta semana.</p>'}</div>`;
   return byeBanner()+`<div class="grid half">${card(sorp,'😮 Sorpresas: arráncalos','Proyectados muy arriba de su promedio, casi siempre por un rival débil.','s')}${card(tramp,'🪤 Trampas: cuidado con estos','Titulares de siempre con una semana complicada.','t')}</div>
-  <div class="card mt"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>Start/Sit general · semana ${S.wk}</span><button type="button" class="ghost" onclick="openShare('carrusel')">🎠 Carrusel para Instagram</button></h2><div class="note" style="margin:-6px 0 12px">${S.projOk?'Proyecciones de Sleeper con la puntuación de tu liga.':'Sin proyecciones de Sleeper: uso la forma ajustada por el rival.'} El veredicto compara a cada jugador con los titulares que usa toda la liga en su posición.</div>
+  <div class="card mt"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>Start/Sit general · semana ${S.wk}</span>${isAdmin()?`<button type="button" class="ghost" onclick="openShare('carrusel')">🎠 Carrusel para Instagram</button>`:''}</h2><div class="note" style="margin:-6px 0 12px">${S.projOk?'Proyecciones de Sleeper con la puntuación de tu liga.':'Sin proyecciones de Sleeper: uso la forma ajustada por el rival.'} El veredicto compara a cada jugador con los titulares que usa toda la liga en su posición.</div>
   <div class="ctrl"><div class="chips">${['ALL',...POS].map(p=>`<button type="button" class="chip ${pos===p?'on':''}" data-sp="${p}">${p==='ALL'?'Todos':p}</button>`).join('')}</div><select id="ssAv"><option value="all" ${av==='all'?'selected':''}>Todos</option><option value="owned" ${av==='owned'?'selected':''}>Con dueño</option><option value="free" ${av==='free'?'selected':''}>Libres</option></select></div>
   <div class="scroll"><table><thead><tr><th class="num">#</th><th>Jugador</th><th>Dueño</th><th>Rival</th><th class="num">Proy.</th><th class="num">Prom</th><th>Veredicto</th></tr></thead><tbody>
   ${list.map((p,i)=>`<tr class="${p.owner===S.highlight?'mine':''}"><td class="num">${pos==='ALL'?i+1:p._rk}</td><td>${photo(p,28)} ${pp(p.pos)} ${pname(p)} <span class="sub">${p.pos}${p._rk}</span></td><td>${ownerTxt(p)}</td><td>${p.opp?(dvpTag(p)||`<span class="sub">vs ${esc(p.opp)}</span>`):'<span class="sub">—</span>'}</td><td class="num"><b>${f1(p._pr)}</b></td><td class="num">${f1(p.avg)}</td><td>${tierB[p._tier]}</td></tr>`).join('')}</tbody></table></div>
@@ -1293,6 +1293,7 @@ async function drawWaiv(c){
 }
 
 // ---------- STUDIO: carrusel de Start/Sit ----------
+const isAdmin=()=>{try{return store.get('rp_admin')==='1'}catch(e){return false}};
 function wrapT(c,t,x,y,max,lh,maxLines){const w=String(t).split(/\s+/);let line='',n=0;
   for(let i=0;i<w.length;i++){const test=line?line+' '+w[i]:w[i];
     if(c.measureText(test).width>max&&line){if(n===maxLines-1){c.fillText(fit(c,line+' '+w.slice(i).join(' '),max),x,y+n*lh);return n+1}c.fillText(line,x,y+n*lh);n++;line=w[i]}else line=test}
@@ -1358,7 +1359,7 @@ function carouselDefs(){
 }
 async function openShare(kind){
   if(!S||!S.played.length)return;
-  if(kind==='carrusel'&&!S.wk)return;
+  if(kind==='carrusel'&&(!S.wk||!isAdmin()))return;
   const m=$('#modal');m.classList.add('on');$('#mbody').innerHTML='<div class="empty"><h2>Armando imágenes…</h2></div>';
   await fontsReady();UI.fmt=UI.fmt||'post';IMG.H=(UI.fmt==='story'&&kind!=='carrusel')?1920:1350;
   let defs;if(kind==='trade')defs=[['trade','Propuesta de trade',drawTrade]];
@@ -1372,7 +1373,7 @@ async function openShare(kind){
     try{await fn(cv.getContext('2d'));items.push({id,label,url:cv.toDataURL('image/png'),cv,file:kind==='carrusel'?`rodopicks-startsit-semana${S.wk}-${id}.png`:`rodopicks-${id}-semana${lw}${UI.fmt==='story'?'-historia':''}.png`})}catch(err){console.error(err)}}
   const canShare=!!(navigator.canShare&&window.File);
   const top=kind==='carrusel'?`<div class="carhead"><div><b>🎠 Carrusel Start/Sit · ${items.length} slides</b><div class="sub">Súbelas en este orden como un solo post de Instagram.</div></div><div class="sbtns"><button type="button" id="dlAll">⬇️ Descargar todas</button>${canShare?'<button type="button" class="ghost" id="shAll">📤 Compartir todas</button>':''}</div></div>`
-    :`<div class="carhead"><button type="button" id="goCar" ${S.wk?'':'disabled'}>🎠 Carrusel Start/Sit automático</button><div class="sub">Portada, 3 para arrancar, 3 para sentar y cierre, con tu marca.</div></div>`;
+    :!isAdmin()?'':`<div class="carhead"><button type="button" id="goCar" ${S.wk?'':'disabled'}>🎠 Carrusel Start/Sit automático</button><div class="sub">Portada, 3 para arrancar, 3 para sentar y cierre, con tu marca.</div></div>`;
   $('#mbody').innerHTML=top+`${kind==='carrusel'?'':`<div class="chips" style="margin-bottom:16px"><button type="button" class="chip ${UI.fmt==='post'?'on':''}" data-f="post">Post 4:5</button><button type="button" class="chip ${UI.fmt==='story'?'on':''}" data-f="story">Historia 9:16</button></div>`}<div class="shots ${items.length===1?'one':''} ${UI.fmt}">${items.map((it,i)=>`<figure><img src="${it.url}" alt="${esc(it.label)}"><figcaption>${esc(it.label)}</figcaption><div class="sbtns"><button type="button" data-dl="${i}">⬇️ Descargar</button>${canShare?`<button type="button" class="ghost" data-sh="${i}">📤 Compartir</button>`:''}</div></figure>`).join('')}</div>
    <p class="note">${kind==='carrusel'?'Post 4:5 (1080 × 1350), el formato de carrusel de Instagram.':UI.fmt==='story'?'Historia 9:16 (1080 × 1920): para historias de Instagram y estados de WhatsApp.':'Post 4:5 (1080 × 1350): para el feed de Instagram y el grupo de WhatsApp.'}</p>`;
   const dl=it=>{const a=document.createElement('a');a.href=it.url;a.download=it.file;document.body.appendChild(a);a.click();a.remove()};
