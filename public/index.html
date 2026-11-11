@@ -179,6 +179,12 @@ td.sep{color:var(--muted);font-size:12px;font-weight:600;padding-top:16px}
 .shots img{width:100%;border-radius:12px;display:block;box-shadow:0 10px 28px rgba(0,0,0,.35)}
 .shots figcaption{font-weight:700;margin:12px 0 8px}
 .sbtns{display:flex;gap:8px;flex-wrap:wrap}
+.careditor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0;max-width:100%;box-sizing:border-box;gap:14px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.careditor h3{margin:0 0 8px;font-size:15px}.carcol{min-width:0}.carrow{margin-bottom:10px}.carname{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px}.carname .carx{margin-left:auto;padding:2px 9px}
+.careditor textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:7px 9px;resize:vertical}
+.caradd,.careditor>.sbtns{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.caradd select{flex:1;min-width:180px}
+@media(max-width:640px){.careditor{grid-template-columns:minmax(0,1fr)}}
+.carname b{overflow-wrap:anywhere}
 .carhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 @media(max-width:600px){header{padding:16px 14px 12px;gap:12px}.brand{gap:12px}.logo{width:64px}h1{font-size:21px}h1 small{font-size:10px;letter-spacing:1px}
 form{width:100%}form input{flex:1;width:auto;min-width:0}form select{flex:1;min-width:0}form button.ghost{padding:8px 10px;font-size:14px}
@@ -1326,7 +1332,7 @@ async function slideCover(c,ns,nt){
   if(ns)pill(`✅ ${ns} para arrancar`,W/2-(nt?200:0),IMG.good);if(nt)pill(`❌ ${nt} para sentar`,W/2+(ns?200:0),IMG.bad);
   c.fillStyle=IMG.muted;c.font=`600 30px ${BF}`;c.fillText('Desliza  →',W/2,1130);c.textAlign='left';
 }
-async function slidePlayer(c,p,kind,page){
+async function slidePlayer(c,p,kind,page,op){
   const {W}=IMG;await slideBg(c,`START / SIT · SEMANA ${S.wk}`,page);
   const st=kind==='start',col=st?IMG.good:IMG.bad;
   c.font=`40px ${VF}`;const lbl=st?'✅ ARRÁNCALO':'❌ SIÉNTALO';const lw=c.measureText(lbl).width+64;rr(c,(W-lw)/2,170,lw,78,39);c.fillStyle=col;c.fill();
@@ -1339,7 +1345,9 @@ async function slidePlayer(c,p,kind,page){
     rr(c,x,800,bw,170,20);c.fillStyle='rgba(255,255,255,.07)';c.fill();c.strokeStyle=i===0?col:IMG.line;c.lineWidth=i===0?3:2;c.stroke();
     c.fillStyle=IMG.muted;c.font=`800 20px ${BF}`;c.fillText(t,x+bw/2,846);c.fillStyle=cl;c.font=`64px ${VF}`;c.fillText(v,x+bw/2,930)});
   rr(c,60,1000,W-120,200,20);c.fillStyle='rgba(61,139,255,.10)';c.fill();
-  c.textAlign='left';c.fillStyle=IMG.cream;c.font=`500 30px ${BF}`;wrapT(c,ssReason(p,kind),96,1056,W-192,42,4);
+  c.textAlign='left';op=(op||'').trim();
+  if(op){c.fillStyle=IMG.blue;c.font=`800 22px ${BF}`;c.fillText('💬 LA OPINIÓN DE RODOPICKS',96,1046);c.fillStyle=IMG.cream;c.font=`600 30px ${BF}`;wrapT(c,op,96,1094,W-192,40,3)}
+  else{c.fillStyle=IMG.cream;c.font=`500 30px ${BF}`;wrapT(c,ssReason(p,kind),96,1056,W-192,42,4)}
 }
 async function slideEnd(c){
   const {W}=IMG;await slideBg(c,null,null);
@@ -1349,13 +1357,31 @@ async function slideEnd(c){
   c.fillStyle=IMG.muted;c.font=`600 32px ${BF}`;c.fillText('Guarda este post y compártelo con tu liga',W/2,920);
   c.fillStyle=IMG.cream;c.font=`700 36px ${BF}`;c.fillText('Sigue a RodoPicks para más picks cada semana',W/2,1080);c.textAlign='left';
 }
+const carKey=()=>`rp_car_${(S.league&&S.league.season)||''}_${S.wk}`;
+function carPool(){const g=ssGeneral();const all=POS.flatMap(ps=>g[ps]);const by={};all.forEach(p=>by[p.id]=p);return {g,all,by}}
+function carState(pool){if(UI.car&&UI.car.key===carKey())return UI.car;
+  let st=null;try{st=JSON.parse(store.get(carKey())||'null')}catch(e){}
+  if(!st||!Array.isArray(st.start)){const {sorp,tramp}=ssSurprises(pool.g);st={start:sorp.slice(0,3).map(p=>p.id),sit:tramp.slice(0,3).map(p=>p.id),op:{}}}
+  st.key=carKey();st.op=st.op||{};st.start=st.start.filter(id=>pool.by[id]);st.sit=st.sit.filter(id=>pool.by[id]);UI.car=st;return st}
+function carSave(){if(UI.car)store.set(carKey(),JSON.stringify({start:UI.car.start,sit:UI.car.sit,op:UI.car.op}))}
+function carEditor(pool,st){
+  const row=(id,k)=>{const p=pool.by[id];return `<div class="carrow"><div class="carname"><b>${esc(p.name)}</b> <span class="sub">${p.pos}${p._rk} · ${esc(p.team||'')}${p.opp?' vs '+esc(p.opp):''} · ${f1(p._pr)} pts</span><button type="button" class="ghost carx" data-rm="${k}|${id}" aria-label="Quitar">✕</button></div>
+    <textarea data-op="${id}" rows="2" maxlength="190" placeholder="Tu opinión (opcional). Si la dejas vacía va el texto automático: ${esc(ssReason(p,k))}">${esc(st.op[id]||'')}</textarea></div>`};
+  const used=new Set([...st.start,...st.sit]);
+  const opts=POS.map(ps=>`<optgroup label="${ps}">${pool.g[ps].filter(p=>!used.has(p.id)).slice(0,60).map(p=>`<option value="${p.id}">${esc(p.name)} · ${ps}${p._rk} · ${esc(p.team||'')} · ${f1(p._pr)}</option>`).join('')}</optgroup>`).join('');
+  return `<div class="careditor">
+    <div class="carcol"><h3>✅ Arráncalo <span class="sub">(${st.start.length}/6)</span></h3>${st.start.map(id=>row(id,'start')).join('')||'<p class="sub">Sin jugadores</p>'}</div>
+    <div class="carcol"><h3>❌ Siéntalo <span class="sub">(${st.sit.length}/6)</span></h3>${st.sit.map(id=>row(id,'sit')).join('')||'<p class="sub">Sin jugadores</p>'}</div>
+    <div class="caradd"><select id="carSel"><option value="">Agregar jugador…</option>${opts}</select><button type="button" class="ghost" id="carAddStart">+ Arráncalo</button><button type="button" class="ghost" id="carAddSit">+ Siéntalo</button></div>
+    <div class="sbtns"><button type="button" id="carGen">🎨 Generar imágenes</button><button type="button" class="ghost" id="carReset">↺ Volver a la sugerencia</button></div>
+  </div>`}
 function carouselDefs(){
-  const g=ssGeneral();const {sorp,tramp}=ssSurprises(g);const st=sorp.slice(0,3),si=tramp.slice(0,3);
-  const tot=st.length+si.length+2;let n=1;const defs=[[`01-portada`,'Portada',c=>slideCover(c,st.length,si.length)]];
-  st.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-arrancar`,`Arráncalo: ${p.name}`,c=>slidePlayer(c,p,'start',`${k} / ${tot}`)])});
-  si.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-sentar`,`Siéntalo: ${p.name}`,c=>slidePlayer(c,p,'sit',`${k} / ${tot}`)])});
+  const pool=carPool(),st=carState(pool);const st1=st.start.map(id=>pool.by[id]),si=st.sit.map(id=>pool.by[id]);
+  const tot=st1.length+si.length+2;let n=1;const defs=[[`01-portada`,'Portada',c=>slideCover(c,st1.length,si.length)]];
+  st1.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-arrancar`,`Arráncalo: ${p.name}`,c=>slidePlayer(c,p,'start',`${k} / ${tot}`,st.op[p.id])])});
+  si.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-sentar`,`Siéntalo: ${p.name}`,c=>slidePlayer(c,p,'sit',`${k} / ${tot}`,st.op[p.id])])});
   n++;defs.push([`${String(n).padStart(2,'0')}-cierre`,'Cierre',slideEnd]);
-  return defs;
+  defs.editor=carEditor(pool,st);return defs;
 }
 async function openShare(kind){
   if(!S||!S.played.length)return;
@@ -1372,12 +1398,19 @@ async function openShare(kind){
   for(const [id,label,fn] of defs){const cv=document.createElement('canvas');cv.width=IMG.W;cv.height=IMG.H;
     try{await fn(cv.getContext('2d'));items.push({id,label,url:cv.toDataURL('image/png'),cv,file:kind==='carrusel'?`rodopicks-startsit-semana${S.wk}-${id}.png`:`rodopicks-${id}-semana${lw}${UI.fmt==='story'?'-historia':''}.png`})}catch(err){console.error(err)}}
   const canShare=!!(navigator.canShare&&window.File);
-  const top=kind==='carrusel'?`<div class="carhead"><div><b>🎠 Carrusel Start/Sit · ${items.length} slides</b><div class="sub">Súbelas en este orden como un solo post de Instagram.</div></div><div class="sbtns"><button type="button" id="dlAll">⬇️ Descargar todas</button>${canShare?'<button type="button" class="ghost" id="shAll">📤 Compartir todas</button>':''}</div></div>`
+  const top=kind==='carrusel'?(defs.editor||'')+`<div class="carhead"><div><b>🎠 Carrusel Start/Sit · ${items.length} slides</b><div class="sub">Súbelas en este orden como un solo post de Instagram.</div></div><div class="sbtns"><button type="button" id="dlAll">⬇️ Descargar todas</button>${canShare?'<button type="button" class="ghost" id="shAll">📤 Compartir todas</button>':''}</div></div>`
     :!isAdmin()?'':`<div class="carhead"><button type="button" id="goCar" ${S.wk?'':'disabled'}>🎠 Carrusel Start/Sit automático</button><div class="sub">Portada, 3 para arrancar, 3 para sentar y cierre, con tu marca.</div></div>`;
   $('#mbody').innerHTML=top+`${kind==='carrusel'?'':`<div class="chips" style="margin-bottom:16px"><button type="button" class="chip ${UI.fmt==='post'?'on':''}" data-f="post">Post 4:5</button><button type="button" class="chip ${UI.fmt==='story'?'on':''}" data-f="story">Historia 9:16</button></div>`}<div class="shots ${items.length===1?'one':''} ${UI.fmt}">${items.map((it,i)=>`<figure><img src="${it.url}" alt="${esc(it.label)}"><figcaption>${esc(it.label)}</figcaption><div class="sbtns"><button type="button" data-dl="${i}">⬇️ Descargar</button>${canShare?`<button type="button" class="ghost" data-sh="${i}">📤 Compartir</button>`:''}</div></figure>`).join('')}</div>
    <p class="note">${kind==='carrusel'?'Post 4:5 (1080 × 1350), el formato de carrusel de Instagram.':UI.fmt==='story'?'Historia 9:16 (1080 × 1920): para historias de Instagram y estados de WhatsApp.':'Post 4:5 (1080 × 1350): para el feed de Instagram y el grupo de WhatsApp.'}</p>`;
   const dl=it=>{const a=document.createElement('a');a.href=it.url;a.download=it.file;document.body.appendChild(a);a.click();a.remove()};
+  $('#mbody').oninput=e=>{const t=e.target.closest('[data-op]');if(t&&UI.car){UI.car.op[t.dataset.op]=t.value;carSave()}};
   $('#mbody').onclick=async e=>{if(e.target.closest('#goCar')){openShare('carrusel');return}
+    if(kind==='carrusel'&&UI.car){const C2=UI.car,rm=e.target.closest('[data-rm]');
+      if(rm){const [k,id]=rm.dataset.rm.split('|');C2[k]=C2[k].filter(x=>x!==id);carSave();openShare('carrusel');return}
+      const ad=e.target.closest('#carAddStart,#carAddSit');if(ad){const id=$('#carSel').value;const k=ad.id==='carAddStart'?'start':'sit';if(!id){toast('Elige un jugador primero',true);return}
+        if(C2[k].length>=6){toast('Máximo 6 por lado',true);return}C2[k].push(id);carSave();openShare('carrusel');return}
+      if(e.target.closest('#carGen')){openShare('carrusel');return}
+      if(e.target.closest('#carReset')){UI.car=null;try{localStorage.removeItem(carKey())}catch(_){}openShare('carrusel');return}}
     if(e.target.closest('#dlAll')){for(const it of items){dl(it);await new Promise(r=>setTimeout(r,450))}return}
     if(e.target.closest('#shAll')){try{const files=await Promise.all(items.map(it=>new Promise(r=>it.cv.toBlob(b=>r(new File([b],it.file,{type:'image/png'})),'image/png'))));if(navigator.canShare({files}))await navigator.share({files,title:'RodoPicks Start/Sit'});else for(const it of items){dl(it);await new Promise(r=>setTimeout(r,450))}}catch(err){if(!err||err.name!=='AbortError')toast('No se pudieron compartir: descárgalas',true)}return}
     const fm=e.target.closest('[data-f]');if(fm){UI.fmt=fm.dataset.f;openShare(kind);return}const d=e.target.closest('[data-dl]'),s=e.target.closest('[data-sh]');
