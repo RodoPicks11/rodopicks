@@ -179,6 +179,7 @@ td.sep{color:var(--muted);font-size:12px;font-weight:600;padding-top:16px}
 .shots img{width:100%;border-radius:12px;display:block;box-shadow:0 10px 28px rgba(0,0,0,.35)}
 .shots figcaption{font-weight:700;margin:12px 0 8px}
 .sbtns{display:flex;gap:8px;flex-wrap:wrap}
+.carhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 @media(max-width:600px){header{padding:16px 14px 12px;gap:12px}.brand{gap:12px}.logo{width:64px}h1{font-size:21px}h1 small{font-size:10px;letter-spacing:1px}
 form{width:100%}form input{flex:1;width:auto;min-width:0}form select{flex:1;min-width:0}form button.ghost{padding:8px 10px;font-size:14px}
 main{padding:16px 12px 40px}.kpis{grid-template-columns:1fr 1fr;gap:10px}.card{padding:14px;border-radius:12px}.kpi .v{font-size:23px}.kpi .l,.kpi .d{font-size:12px}
@@ -1159,7 +1160,7 @@ function ssGenHTML(){
   const tot=list.length;list=list.slice(0,show);
   const card=(arr,title,sub,kind)=>`<div class="card"><h2>${title}</h2><p class="sub" style="margin-top:-6px">${sub}</p>${arr.length?arr.map(p=>`<div class="rec"><div>${photo(p,34)} ${pp(p.pos)} ${pname(p)} <span class="sub">· ${ownerTxt(p)}</span><div class="why">${p.opp?(dvpTag(p)||'vs '+esc(p.opp))+' · ':''}proy. <b style="color:var(--text)">${f1(p._pr)}</b> vs ${f1(p.avg)} de promedio · ${p.pos}${p._rk} de la semana</div></div><div class="gain" style="color:var(--${kind==='t'?'bad':'good'})">${kind==='t'?'':'+'}${f1(p._pr-p.avg)}</div></div>`).join(''):'<p class="sub">Nada destacable esta semana.</p>'}</div>`;
   return byeBanner()+`<div class="grid half">${card(sorp,'😮 Sorpresas: arráncalos','Proyectados muy arriba de su promedio, casi siempre por un rival débil.','s')}${card(tramp,'🪤 Trampas: cuidado con estos','Titulares de siempre con una semana complicada.','t')}</div>
-  <div class="card mt"><h2>Start/Sit general · semana ${S.wk}</h2><div class="note" style="margin:-6px 0 12px">${S.projOk?'Proyecciones de Sleeper con la puntuación de tu liga.':'Sin proyecciones de Sleeper: uso la forma ajustada por el rival.'} El veredicto compara a cada jugador con los titulares que usa toda la liga en su posición.</div>
+  <div class="card mt"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>Start/Sit general · semana ${S.wk}</span><button type="button" class="ghost" onclick="openShare('carrusel')">🎠 Carrusel para Instagram</button></h2><div class="note" style="margin:-6px 0 12px">${S.projOk?'Proyecciones de Sleeper con la puntuación de tu liga.':'Sin proyecciones de Sleeper: uso la forma ajustada por el rival.'} El veredicto compara a cada jugador con los titulares que usa toda la liga en su posición.</div>
   <div class="ctrl"><div class="chips">${['ALL',...POS].map(p=>`<button type="button" class="chip ${pos===p?'on':''}" data-sp="${p}">${p==='ALL'?'Todos':p}</button>`).join('')}</div><select id="ssAv"><option value="all" ${av==='all'?'selected':''}>Todos</option><option value="owned" ${av==='owned'?'selected':''}>Con dueño</option><option value="free" ${av==='free'?'selected':''}>Libres</option></select></div>
   <div class="scroll"><table><thead><tr><th class="num">#</th><th>Jugador</th><th>Dueño</th><th>Rival</th><th class="num">Proy.</th><th class="num">Prom</th><th>Veredicto</th></tr></thead><tbody>
   ${list.map((p,i)=>`<tr class="${p.owner===S.highlight?'mine':''}"><td class="num">${pos==='ALL'?i+1:p._rk}</td><td>${photo(p,28)} ${pp(p.pos)} ${pname(p)} <span class="sub">${p.pos}${p._rk}</span></td><td>${ownerTxt(p)}</td><td>${p.opp?(dvpTag(p)||`<span class="sub">vs ${esc(p.opp)}</span>`):'<span class="sub">—</span>'}</td><td class="num"><b>${f1(p._pr)}</b></td><td class="num">${f1(p.avg)}</td><td>${tierB[p._tier]}</td></tr>`).join('')}</tbody></table></div>
@@ -1291,23 +1292,94 @@ async function drawWaiv(c){
     c.textAlign='right';c.fillStyle=IMG.blue;c.font=`40px ${VF}`;c.fillText(Math.round(p.value),IMG.W-90,cy+6);c.fillStyle=IMG.muted;c.font=`600 14px ${BF}`;c.fillText('VALOR',IMG.W-90,cy+30);c.textAlign='left'});
 }
 
+// ---------- STUDIO: carrusel de Start/Sit ----------
+function wrapT(c,t,x,y,max,lh,maxLines){const w=String(t).split(/\s+/);let line='',n=0;
+  for(let i=0;i<w.length;i++){const test=line?line+' '+w[i]:w[i];
+    if(c.measureText(test).width>max&&line){if(n===maxLines-1){c.fillText(fit(c,line+' '+w.slice(i).join(' '),max),x,y+n*lh);return n+1}c.fillText(line,x,y+n*lh);n++;line=w[i]}else line=test}
+  if(line){c.fillText(line,x,y+n*lh);n++}return n}
+async function slideBg(c,label,page){
+  const {W,H}=IMG;c.fillStyle=IMG.navy;c.fillRect(0,0,W,H);
+  const g=c.createRadialGradient(200,110,30,200,110,950);g.addColorStop(0,'rgba(47,123,255,.42)');g.addColorStop(1,'rgba(5,12,26,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
+  const g2=c.createRadialGradient(W,H,20,W,H,800);g2.addColorStop(0,'rgba(47,123,255,.22)');g2.addColorStop(1,'rgba(5,12,26,0)');c.fillStyle=g2;c.fillRect(0,0,W,H);
+  c.save();c.globalAlpha=.03;c.fillStyle=IMG.cream;for(let i=-H;i<W;i+=48){c.beginPath();c.moveTo(i,0);c.lineTo(i+14,0);c.lineTo(i+14+H,H);c.lineTo(i+H,H);c.closePath();c.fill()}c.restore();
+  if(label){const logo=document.querySelector('img.logo');if(logo){const im=await loadImg(logo.src);if(im){const h=92,w=Math.round(h*im.width/im.height);c.save();c.shadowColor='rgba(47,123,255,.6)';c.shadowBlur=20;c.drawImage(im,52,38,w,h);c.restore();c.drawImage(im,52,38,w,h)}}
+    c.textAlign='left';c.textBaseline='alphabetic';c.fillStyle=IMG.muted;c.font=`28px ${VF}`;c.fillText(label,170,96);
+    if(page){c.textAlign='right';c.font=`600 24px ${BF}`;c.fillText(page,W-60,96);c.textAlign='left'}}
+  c.strokeStyle=IMG.line;c.lineWidth=2;c.beginPath();c.moveTo(60,H-84);c.lineTo(W-60,H-84);c.stroke();
+  c.fillStyle=IMG.cream;c.font=`26px ${VF}`;c.fillText('RODOPICKS',60,H-36);c.fillStyle=IMG.blue;c.fillText(' FANTASY NFL',60+c.measureText('RODOPICKS').width,H-36);
+  c.fillStyle=IMG.muted;c.font=`500 24px ${BF}`;c.textAlign='right';c.fillText(`Datos: Sleeper · PPR · Semana ${S.wk}`,W-60,H-38);c.textAlign='left';
+}
+function ssReason(p,kind){
+  const dv=!(p.dvp&&p.opp)?'':p.dvp.rk<=12?` ${p.opp} es la ${p.dvp.rk}ª defensa que más puntos permite a ${p.pos} (${f1(p.dvp.pts)} por partido).`:p.dvp.rk>=21?` Enfrente está ${p.opp}, una de las defensas más duras contra ${p.pos} (solo ${f1(p.dvp.pts)} por partido).`:` ${p.opp} permite ${f1(p.dvp.pts)} pts por partido a ${p.pos}, un rival promedio.`;
+  const src=S.projOk?'Proyectado':'Estimado';
+  return kind==='start'?`${src} con ${f1(p._pr)} pts, ${f1(p._pr-p.avg)} arriba de su promedio de ${f1(p.avg)}.${dv} Esta semana es el ${p.pos}${p._rk} de la jornada.`
+    :`Promedia ${f1(p.avg)}, pero esta semana: ${f1(p._pr)} pts ${S.projOk?'proyectados':'estimados'}.${dv} Esta semana cae a ${p.pos}${p._rk}.`;
+}
+async function slideCover(c,ns,nt){
+  const {W}=IMG;await slideBg(c,null,null);
+  const logo=document.querySelector('img.logo');if(logo){const im=await loadImg(logo.src);if(im){const h=360,w=Math.round(h*im.width/im.height);c.save();c.shadowColor='rgba(47,123,255,.7)';c.shadowBlur=50;c.drawImage(im,(W-w)/2,110,w,h);c.restore();c.drawImage(im,(W-w)/2,110,w,h)}}
+  c.textAlign='center';c.fillStyle=IMG.cream;c.font=`124px ${VF}`;c.fillText('START / SIT',W/2,640);
+  c.fillStyle=IMG.blue;c.font=`72px ${VF}`;c.fillText(`SEMANA ${S.wk}`,W/2,740);
+  c.fillStyle=IMG.cream;c.font=`600 38px ${BF}`;c.fillText('¿A quién metes y a quién mandas a la banca?',W/2,840);
+  const pill=(t,x,col)=>{c.font=`800 30px ${BF}`;const w=c.measureText(t).width+56;rr(c,x-w/2,890,w,66,33);c.fillStyle=col;c.fill();c.fillStyle='#050C1A';c.fillText(t,x,934)};
+  if(ns)pill(`✅ ${ns} para arrancar`,W/2-(nt?200:0),IMG.good);if(nt)pill(`❌ ${nt} para sentar`,W/2+(ns?200:0),IMG.bad);
+  c.fillStyle=IMG.muted;c.font=`600 30px ${BF}`;c.fillText('Desliza  →',W/2,1130);c.textAlign='left';
+}
+async function slidePlayer(c,p,kind,page){
+  const {W}=IMG;await slideBg(c,`START / SIT · SEMANA ${S.wk}`,page);
+  const st=kind==='start',col=st?IMG.good:IMG.bad;
+  c.font=`40px ${VF}`;const lbl=st?'✅ ARRÁNCALO':'❌ SIÉNTALO';const lw=c.measureText(lbl).width+64;rr(c,(W-lw)/2,170,lw,78,39);c.fillStyle=col;c.fill();
+  c.fillStyle='#050C1A';c.textAlign='center';c.fillText(lbl,W/2,224);
+  const ims=await photos([p]);c.save();c.shadowColor=col;c.shadowBlur=40;c.beginPath();c.arc(W/2,440,160,0,Math.PI*2);c.fillStyle=IMG.navy2;c.fill();c.restore();face(c,p,ims[p.id],W/2,440,160);
+  c.beginPath();c.arc(W/2,440,168,0,Math.PI*2);c.strokeStyle=col;c.lineWidth=6;c.stroke();
+  c.textAlign='center';c.fillStyle=IMG.cream;c.font=`64px ${VF}`;c.fillText(fit(c,p.name.toUpperCase(),W-120),W/2,700);
+  c.fillStyle=IMG.muted;c.font=`600 32px ${BF}`;c.fillText(`${p.pos} · ${p.team||''}${p.opp?'  vs  '+p.opp:''}`,W/2,752);
+  const bw=(W-120-40)/3;[[S.projOk?'PROYECCIÓN':'ESTIMADO',f1(p._pr),col],['PROMEDIO',f1(p.avg),IMG.cream],['ÚLTIMOS 3',f1(p.l3),IMG.cream]].forEach(([t,v,cl],i)=>{const x=60+i*(bw+20);
+    rr(c,x,800,bw,170,20);c.fillStyle='rgba(255,255,255,.07)';c.fill();c.strokeStyle=i===0?col:IMG.line;c.lineWidth=i===0?3:2;c.stroke();
+    c.fillStyle=IMG.muted;c.font=`800 20px ${BF}`;c.fillText(t,x+bw/2,846);c.fillStyle=cl;c.font=`64px ${VF}`;c.fillText(v,x+bw/2,930)});
+  rr(c,60,1000,W-120,200,20);c.fillStyle='rgba(61,139,255,.10)';c.fill();
+  c.textAlign='left';c.fillStyle=IMG.cream;c.font=`500 30px ${BF}`;wrapT(c,ssReason(p,kind),96,1056,W-192,42,4);
+}
+async function slideEnd(c){
+  const {W}=IMG;await slideBg(c,null,null);
+  const logo=document.querySelector('img.logo');if(logo){const im=await loadImg(logo.src);if(im){const h=340,w=Math.round(h*im.width/im.height);c.save();c.shadowColor='rgba(47,123,255,.7)';c.shadowBlur=50;c.drawImage(im,(W-w)/2,150,w,h);c.restore();c.drawImage(im,(W-w)/2,150,w,h)}}
+  c.textAlign='center';c.fillStyle=IMG.cream;c.font=`70px ${VF}`;c.fillText('¿Y TÚ A QUIÉN',W/2,660);c.fillText('ARRANCAS?',W/2,745);
+  c.fillStyle=IMG.blue;c.font=`700 40px ${BF}`;c.fillText('Te leemos en los comentarios 👇',W/2,840);
+  c.fillStyle=IMG.muted;c.font=`600 32px ${BF}`;c.fillText('Guarda este post y compártelo con tu liga',W/2,920);
+  c.fillStyle=IMG.cream;c.font=`700 36px ${BF}`;c.fillText('Sigue a RodoPicks para más picks cada semana',W/2,1080);c.textAlign='left';
+}
+function carouselDefs(){
+  const g=ssGeneral();const {sorp,tramp}=ssSurprises(g);const st=sorp.slice(0,3),si=tramp.slice(0,3);
+  const tot=st.length+si.length+2;let n=1;const defs=[[`01-portada`,'Portada',c=>slideCover(c,st.length,si.length)]];
+  st.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-arrancar`,`Arráncalo: ${p.name}`,c=>slidePlayer(c,p,'start',`${k} / ${tot}`)])});
+  si.forEach(p=>{n++;const k=n;defs.push([`${String(k).padStart(2,'0')}-sentar`,`Siéntalo: ${p.name}`,c=>slidePlayer(c,p,'sit',`${k} / ${tot}`)])});
+  n++;defs.push([`${String(n).padStart(2,'0')}-cierre`,'Cierre',slideEnd]);
+  return defs;
+}
 async function openShare(kind){
   if(!S||!S.played.length)return;
+  if(kind==='carrusel'&&!S.wk)return;
   const m=$('#modal');m.classList.add('on');$('#mbody').innerHTML='<div class="empty"><h2>Armando imágenes…</h2></div>';
-  await fontsReady();UI.fmt=UI.fmt||'post';IMG.H=UI.fmt==='story'?1920:1350;
+  await fontsReady();UI.fmt=UI.fmt||'post';IMG.H=(UI.fmt==='story'&&kind!=='carrusel')?1920:1350;
   let defs;if(kind==='trade')defs=[['trade','Propuesta de trade',drawTrade]];
+  else if(kind==='carrusel')defs=carouselDefs();
   else{defs=[['tabla','Tabla general',drawTabla],['power','Power Ranking RodoPicks',drawPower],['top','Lo mejor de la semana',drawTop]];
     if(S.wk&&S.curGames.length&&S.showW===S.cur)defs.push(['previa','Previa de la semana',drawPrevia]);
     if(S.wk)defs.push(['startsit','Start/Sit de la semana',drawSSGen],['startsit-equipo','Start/Sit de '+S.T[S.highlight].name,drawSS]);
     defs.push(['waivers','Waivers de la semana',drawWaiv],['premios','Premios de la temporada',drawPremios])}
   const items=[];const lw=lastWeek();
   for(const [id,label,fn] of defs){const cv=document.createElement('canvas');cv.width=IMG.W;cv.height=IMG.H;
-    try{await fn(cv.getContext('2d'));items.push({id,label,url:cv.toDataURL('image/png'),cv,file:`rodopicks-${id}-semana${lw}${UI.fmt==='story'?'-historia':''}.png`})}catch(err){console.error(err)}}
+    try{await fn(cv.getContext('2d'));items.push({id,label,url:cv.toDataURL('image/png'),cv,file:kind==='carrusel'?`rodopicks-startsit-semana${S.wk}-${id}.png`:`rodopicks-${id}-semana${lw}${UI.fmt==='story'?'-historia':''}.png`})}catch(err){console.error(err)}}
   const canShare=!!(navigator.canShare&&window.File);
-  $('#mbody').innerHTML=`<div class="chips" style="margin-bottom:16px"><button type="button" class="chip ${UI.fmt==='post'?'on':''}" data-f="post">Post 4:5</button><button type="button" class="chip ${UI.fmt==='story'?'on':''}" data-f="story">Historia 9:16</button></div><div class="shots ${items.length===1?'one':''} ${UI.fmt}">${items.map((it,i)=>`<figure><img src="${it.url}" alt="${esc(it.label)}"><figcaption>${esc(it.label)}</figcaption><div class="sbtns"><button type="button" data-dl="${i}">⬇️ Descargar</button>${canShare?`<button type="button" class="ghost" data-sh="${i}">📤 Compartir</button>`:''}</div></figure>`).join('')}</div>
-   <p class="note">${UI.fmt==='story'?'Historia 9:16 (1080 × 1920): para historias de Instagram y estados de WhatsApp.':'Post 4:5 (1080 × 1350): para el feed de Instagram y el grupo de WhatsApp.'}</p>`;
+  const top=kind==='carrusel'?`<div class="carhead"><div><b>🎠 Carrusel Start/Sit · ${items.length} slides</b><div class="sub">Súbelas en este orden como un solo post de Instagram.</div></div><div class="sbtns"><button type="button" id="dlAll">⬇️ Descargar todas</button>${canShare?'<button type="button" class="ghost" id="shAll">📤 Compartir todas</button>':''}</div></div>`
+    :`<div class="carhead"><button type="button" id="goCar" ${S.wk?'':'disabled'}>🎠 Carrusel Start/Sit automático</button><div class="sub">Portada, 3 para arrancar, 3 para sentar y cierre, con tu marca.</div></div>`;
+  $('#mbody').innerHTML=top+`${kind==='carrusel'?'':`<div class="chips" style="margin-bottom:16px"><button type="button" class="chip ${UI.fmt==='post'?'on':''}" data-f="post">Post 4:5</button><button type="button" class="chip ${UI.fmt==='story'?'on':''}" data-f="story">Historia 9:16</button></div>`}<div class="shots ${items.length===1?'one':''} ${UI.fmt}">${items.map((it,i)=>`<figure><img src="${it.url}" alt="${esc(it.label)}"><figcaption>${esc(it.label)}</figcaption><div class="sbtns"><button type="button" data-dl="${i}">⬇️ Descargar</button>${canShare?`<button type="button" class="ghost" data-sh="${i}">📤 Compartir</button>`:''}</div></figure>`).join('')}</div>
+   <p class="note">${kind==='carrusel'?'Post 4:5 (1080 × 1350), el formato de carrusel de Instagram.':UI.fmt==='story'?'Historia 9:16 (1080 × 1920): para historias de Instagram y estados de WhatsApp.':'Post 4:5 (1080 × 1350): para el feed de Instagram y el grupo de WhatsApp.'}</p>`;
   const dl=it=>{const a=document.createElement('a');a.href=it.url;a.download=it.file;document.body.appendChild(a);a.click();a.remove()};
-  $('#mbody').onclick=e=>{const fm=e.target.closest('[data-f]');if(fm){UI.fmt=fm.dataset.f;openShare(kind);return}const d=e.target.closest('[data-dl]'),s=e.target.closest('[data-sh]');
+  $('#mbody').onclick=async e=>{if(e.target.closest('#goCar')){openShare('carrusel');return}
+    if(e.target.closest('#dlAll')){for(const it of items){dl(it);await new Promise(r=>setTimeout(r,450))}return}
+    if(e.target.closest('#shAll')){try{const files=await Promise.all(items.map(it=>new Promise(r=>it.cv.toBlob(b=>r(new File([b],it.file,{type:'image/png'})),'image/png'))));if(navigator.canShare({files}))await navigator.share({files,title:'RodoPicks Start/Sit'});else for(const it of items){dl(it);await new Promise(r=>setTimeout(r,450))}}catch(err){if(!err||err.name!=='AbortError')toast('No se pudieron compartir: descárgalas',true)}return}
+    const fm=e.target.closest('[data-f]');if(fm){UI.fmt=fm.dataset.f;openShare(kind);return}const d=e.target.closest('[data-dl]'),s=e.target.closest('[data-sh]');
     if(d)dl(items[+d.dataset.dl]);
     if(s){const it=items[+s.dataset.sh];it.cv.toBlob(async b=>{const f=new File([b],it.file,{type:'image/png'});
       try{if(navigator.canShare({files:[f]}))await navigator.share({files:[f],title:'RodoPicks'});else dl(it)}catch(err){if(!err||err.name!=='AbortError')dl(it)}},'image/png')}};
