@@ -34,6 +34,20 @@ paths:
             type: integer
             minimum: 1
             maximum: 50
+        - name: seccion
+          in: query
+          required: false
+          description: Devuelve solo estas secciones (separadas por coma) para respuestas más cortas. Valores rankings, startsit, waivers, sleepers, riesgo.
+          schema:
+            type: string
+            example: rankings
+        - name: pos
+          in: query
+          required: false
+          description: Filtra por posición (separadas por coma). Valores QB, RB, WR, TE, K, DEF.
+          schema:
+            type: string
+            example: RB
       responses:
         '200':
           description: Contenido Fantasy de la semana
