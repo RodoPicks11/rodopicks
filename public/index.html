@@ -185,6 +185,13 @@ td.sep{color:var(--muted);font-size:12px;font-weight:600;padding-top:16px}
 .caradd,.careditor>.sbtns{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.caradd select{flex:1;min-width:180px}
 @media(max-width:640px){.careditor{grid-template-columns:minmax(0,1fr)}}
 .carname b{overflow-wrap:anywhere}
+.boleta .bwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:18px;align-items:center}.bmain{display:flex;gap:16px;align-items:center}
+.bbig{width:96px;height:96px;flex:0 0 96px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Russo One','Arial Black',sans-serif;font-size:44px;border:5px solid currentColor}
+.bsubs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media(max-width:480px){.bsubs{grid-template-columns:1fr}}.bsub{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.bsub .sub{font-size:12px}
+.bgr{min-width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Russo One','Arial Black',sans-serif;font-size:18px;border:2px solid currentColor}
+.bbig.good,.bgr.good{color:var(--good)}.bbig.blue,.bgr.blue{color:var(--blue)}.bbig.warn,.bgr.warn{color:var(--warn)}.bbig.bad,.bgr.bad{color:var(--bad)}
+.btip{padding:9px 12px;border-left:4px solid var(--line);background:var(--panel2);border-radius:8px;margin-bottom:8px;font-size:14px}.btip.good{border-color:var(--good)}.btip.warn{border-color:var(--warn)}.btip.bad{border-color:var(--bad)}
+@media(max-width:700px){.boleta .bwrap{grid-template-columns:1fr}}
 .carhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 @media(max-width:600px){header{padding:16px 14px 12px;gap:12px}.brand{gap:12px}.logo{width:64px}h1{font-size:21px}h1 small{font-size:10px;letter-spacing:1px}
 form{width:100%}form input{flex:1;width:auto;min-width:0}form select{flex:1;min-width:0}form button.ghost{padding:8px 10px;font-size:14px}
@@ -903,6 +910,77 @@ async function copyTrade(){
 }
 
 // ---------- pestaña MI EQUIPO ----------
+// ---------- BOLETA DEL EQUIPO ----------
+const GRADES=[[93,'A+'],[85,'A'],[77,'A-'],[70,'B+'],[62,'B'],[55,'B-'],[48,'C+'],[40,'C'],[33,'C-'],[25,'D'],[0,'F']];
+const gradeOf=s=>GRADES.find(([m])=>s>=m)[1];
+const gradeCol=g=>g[0]==='A'?'good':g[0]==='B'?'blue':g[0]==='C'?'warn':'bad';
+function injStarOf(p){if(!S._injStar){const m={};S.pl.filter(q=>isHurt(q)&&q.team&&(q.value>=25||(q.games>=2&&q.avg>=8))).forEach(q=>{const k=q.team+'|'+q.pos;if(!m[k]||m[k].value<q.value)m[k]=q});S._injStar=m}
+  const st=p&&p.team?S._injStar[p.team+'|'+p.pos]:null;return st&&st.id!==p.id&&(st.avg>p.avg||st.value>p.value)?st:null}
+function teamReports(){
+  if(S._rep)return S._rep;const n=S.n,teams=S.ranked,core=['QB','RB','WR','TE'];
+  const pctRank=(key,desc=true)=>{const m={};[...teams].sort((a,b)=>desc?key(b)-key(a):key(a)-key(b)).forEach((t,i)=>m[t.rid]=n>1?100*(1-i/(n-1)):100);return m};
+  const posPct=t=>core.map(ps=>n>1?100*(1-(t.strRank[ps]-1)/(n-1)):100);
+  const val=t=>t.players.map(id=>S.PL[id]).filter(Boolean).map(p=>p.value||0).sort((a,b)=>b-a).slice(0,18).reduce((a,v)=>a+v,0);
+  const ageOf=t=>{const c=t.players.map(id=>S.PL[id]).filter(p=>p&&p.age&&p.pos!=='K'&&p.pos!=='DEF').sort((a,b)=>b.value-a.value).slice(0,10);const w=c.reduce((a,p)=>a+Math.max(1,p.value),0);return c.length?c.reduce((a,p)=>a+p.age*Math.max(1,p.value),0)/w:null};
+  const bal=t=>{const v=posPct(t);return 0.6*Math.min(...v)+0.4*v.reduce((a,x)=>a+x,0)/v.length};
+  const R={tit:pctRank(t=>t.strTot*0.5/Math.max(1e-9,Math.max(...teams.map(x=>x.strTot)))+t.cProj*0.005),dep:pctRank(t=>t.cDepth),bal:pctRank(bal),val:pctRank(val)};
+  const ages={};teams.forEach(t=>ages[t.rid]=ageOf(t));const useAge=S.dyn&&teams.every(t=>ages[t.rid]!=null);
+  if(useAge)R.age=pctRank(t=>ages[t.rid],false);
+  const W=useAge?{tit:.30,dep:.15,bal:.10,val:.30,age:.15}:{tit:.45,dep:.20,bal:.15,val:.20};
+  const out={};
+  teams.forEach(t=>{const s={};for(const k in W)s[k]=R[k][t.rid];const tot=Object.keys(W).reduce((a,k)=>a+W[k]*s[k],0);
+    out[t.rid]={s,tot,g:gradeOf(tot),age:ages[t.rid],val:val(t)}});
+  const ord=[...teams].sort((a,b)=>out[b.rid].tot-out[a.rid].tot);ord.forEach((t,i)=>out[t.rid].rk=i+1);
+  S._rep=out;return out}
+function teamTips(me){
+  const n=S.n,core=['QB','RB','WR','TE'],tips=[];const roster=me.players.map(id=>S.PL[id]).filter(Boolean);
+  const healthy=roster.filter(p=>!isHurt(p));const rep=teamReports()[me.rid];
+  const weakest=core.slice().sort((a,b)=>me.strRank[b]-me.strRank[a])[0],strongest=core.slice().sort((a,b)=>me.strRank[a]-me.strRank[b])[0];
+  if(me.strRank[weakest]>n/2){const fa=S.pl.filter(p=>p.owner==null&&p.pos===weakest&&!isHurt(p)&&p.games>0).sort((a,b)=>(b.value||0)-(a.value||0)||b.form-a.form)[0];
+    tips.push({t:'bad',x:`Tu ${weakest} está ${me.strRank[weakest]}° de ${n} en la liga: es tu prioridad.${fa?` En waivers el mejor disponible es ${fa.name} (${f1(fa.avg)} de promedio).`:''}`})}
+  const need={};S.rp.forEach(s=>{if(['QB','RB','WR','TE'].includes(s))need[s]=(need[s]||0)+1});
+  core.forEach(ps=>{const have=healthy.filter(p=>p.pos===ps).length;if(need[ps]&&have<=need[ps])tips.push({t:'warn',x:`No tienes respaldo sano en ${ps}: ${have} jugador${have===1?'':'es'} para ${need[ps]} lugar${need[ps]===1?'':'es'} de titular. Una lesión o un descanso te deja con un hueco.`})});
+  if(S.wk){const line=bestLineup(healthy.filter(p=>!onBye(p,S.wk)),S.rp,'form').filter(s=>s.p).map(s=>s.p);
+    for(let w=S.wk+1;w<=Math.min(S.wk+4,S.regEnd||17);w++){const off=line.filter(p=>p.bye===w);
+      if(off.length>=2||off.some(p=>(need[p.pos]||0)>=healthy.filter(q=>q.pos===p.pos).length)){tips.push({t:'warn',x:`En la semana ${w} descansan ${off.length} de tus titulares: ${off.map(p=>p.name).join(', ')}. Prepara reemplazos.`});break}}}
+  const hurt=roster.filter(isHurt);if(hurt.length>=2)tips.push({t:'warn',x:`Tienes ${hurt.length} jugadores lesionados o en IR (${hurt.slice(0,3).map(p=>p.name).join(', ')}${hurt.length>3?'…':''}). Revisa si alguno ya no vale el lugar en tu plantilla.`});
+  if(me.strRank[strongest]<=Math.ceil(n/3)&&strongest!==weakest){const inL=new Set(bestLineup(healthy,S.rp,'value').filter(s=>s.p).map(s=>s.p.id));
+    const chip=healthy.filter(p=>p.pos===strongest&&!inL.has(p.id)).sort((a,b)=>b.value-a.value)[0];
+    const partner=S.ranked.filter(t=>t.rid!==me.rid).map(t=>({t,sc:(me.strRank[weakest]-t.strRank[weakest])+(t.strRank[strongest]-me.strRank[strongest])})).sort((a,b)=>b.sc-a.sc)[0];
+    if(chip&&chip.value>=15)tips.push({t:'good',x:`Te sobra ${strongest} (${me.strRank[strongest]}° de la liga): ${chip.name} está en tu banca y puede ser moneda de cambio por un ${weakest}.${partner?` El equipo que mejor te combina para un trade es ${partner.t.name}.`:''}`})}
+  if(rep.s.age!=null&&rep.s.age<35&&rep.age)tips.push({t:'warn',x:`Tu núcleo promedia ${f1(rep.age)} años, de los más viejos de la liga. En dynasty conviene ir metiendo juventud.`});
+  if(!tips.length)tips.push({t:'good',x:'Tu equipo no tiene huecos claros. Cuida la banca y aprovecha las waivers para mejorar el fondo.'});
+  return tips.slice(0,5)}
+const BOL_NAMES={tit:['Titulares','Fuerza de tu mejor alineación'],dep:['Profundidad','Calidad de la banca para lesiones y descansos'],bal:['Balance','Qué tan parejo estás en QB, RB, WR y TE'],val:['Valor de mercado','Valor de tu plantilla en FantasyCalc'],age:['Edad / futuro','Edad de tu núcleo (dynasty)']};
+function boletaPhrase(g){return g[0]==='A'?'Equipo para pelear el campeonato':g[0]==='B'?'Buen equipo, con detalles por pulir':g[0]==='C'?'Equipo del montón: hay que moverse':'Hay que moverse ya'}
+function boletaHTML(me){
+  const rep=teamReports()[me.rid];if(!rep)return '';const tips=teamTips(me);
+  const subj=Object.keys(rep.s).map(k=>{const g=gradeOf(rep.s[k]);return `<div class="bsub"><span class="bgr ${gradeCol(g)}">${g}</span><div><b>${BOL_NAMES[k][0]}</b><div class="sub">${BOL_NAMES[k][1]}</div></div></div>`}).join('');
+  return `<div class="card mt boleta"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>🎓 Boleta de ${esc(me.name)}</span><button type="button" class="ghost" onclick="openShare('boleta')">📤 Compartir boleta</button></h2>
+    <div class="bwrap"><div class="bmain"><div class="bbig ${gradeCol(rep.g)}">${rep.g}</div><div><b>${boletaPhrase(rep.g)}</b><div class="sub">${rep.rk}° de ${S.n} en calificación general · comparado contra tu liga</div></div></div>
+    <div class="bsubs">${subj}</div></div>
+    <h3 style="margin:16px 0 6px;font-size:15px">Lo que te hace falta</h3>
+    ${tips.map(t=>`<div class="btip ${t.t}">${esc(t.x)}</div>`).join('')}
+    <p class="note">Cada materia te compara contra los ${S.n} equipos de la liga con datos de Sleeper${S.market?' y FantasyCalc':''}. La A+ es lo mejor de la liga y la F lo más bajo.</p></div>`}
+async function drawBoleta(c){
+  const me=S.T[S.highlight];const rep=teamReports()[me.rid];const tips=teamTips(me);const {W}=IMG;
+  await base(c,'BOLETA DEL EQUIPO',me.name,`${S.league.name} · semana ${S.wk||S.showW}`);
+  const col=g=>({good:IMG.good,blue:IMG.blue,warn:'#F2C14E',bad:IMG.bad})[gradeCol(g)];
+  c.save();c.shadowColor=col(rep.g);c.shadowBlur=40;c.beginPath();c.arc(210,430,120,0,Math.PI*2);c.fillStyle=IMG.navy2;c.fill();c.restore();
+  c.beginPath();c.arc(210,430,120,0,Math.PI*2);c.strokeStyle=col(rep.g);c.lineWidth=8;c.stroke();
+  c.textAlign='center';c.fillStyle=col(rep.g);c.font=`110px ${VF}`;c.fillText(rep.g,210,468);
+  c.textAlign='left';c.fillStyle=IMG.cream;c.font=`800 34px ${BF}`;wrapT(c,boletaPhrase(rep.g),370,400,W-430,42,2);
+  c.fillStyle=IMG.muted;c.font=`600 26px ${BF}`;c.fillText(`${rep.rk}° de ${S.n} en su liga`,370,500);
+  const ks=Object.keys(rep.s);const bw=(W-120-(ks.length-1)*14)/ks.length;
+  ks.forEach((k,i)=>{const x=60+i*(bw+14),g=gradeOf(rep.s[k]);rr(c,x,600,bw,150,18);c.fillStyle='rgba(255,255,255,.07)';c.fill();c.strokeStyle=col(g);c.lineWidth=2;c.stroke();
+    c.textAlign='center';c.fillStyle=col(g);c.font=`56px ${VF}`;c.fillText(g,x+bw/2,688);c.fillStyle=IMG.cream;c.font=`700 ${ks.length>4?19:21}px ${BF}`;c.fillText(fit(c,BOL_NAMES[k][0],bw-16),x+bw/2,728)});
+  c.textAlign='left';c.fillStyle=IMG.muted;c.font=`800 22px ${BF}`;c.fillText('LUGAR EN LA LIGA POR POSICIÓN',60,812);
+  ['QB','RB','WR','TE'].forEach((ps,i)=>{const x=60+i*((W-120-42)/4+14),w=(W-120-42)/4,r=me.strRank[ps];rr(c,x,830,w,64,14);c.fillStyle='rgba(255,255,255,.06)';c.fill();
+    c.fillStyle=PCOL[ps]||IMG.cream;c.font=`28px ${VF}`;c.fillText(ps,x+18,873);c.textAlign='right';c.fillStyle=r<=S.n/3?IMG.good:r>S.n*2/3?IMG.bad:IMG.cream;c.font=`30px ${VF}`;c.fillText(`${r}°`,x+w-18,874);c.textAlign='left'});
+  c.fillStyle=IMG.blue;c.font=`30px ${VF}`;c.fillText('LO QUE LE HACE FALTA',60,962);
+  let y=1010;tips.slice(0,4).forEach(t=>{if(y>IMG.H-150)return;c.fillStyle=t.t==='good'?IMG.good:t.t==='bad'?IMG.bad:'#F2C14E';c.beginPath();c.arc(72,y-9,8,0,Math.PI*2);c.fill();
+    c.fillStyle=IMG.cream;c.font=`500 25px ${BF}`;const lines=wrapT(c,t.x,96,y,W-160,33,3);y+=lines*33+22});
+}
 function vEquipo(){
   const me=S.T[S.highlight];const n=S.n;
   const roster=me.players.map(id=>S.PL[id]).filter(Boolean);
@@ -918,7 +996,7 @@ function vEquipo(){
   const strongest=POS.filter(p=>p!=='K'&&p!=='DEF').sort((a,b)=>me.strRank[a]-me.strRank[b])[0];
   // socios de trade: equipos fuertes donde tú eres débil y débiles donde tú eres fuerte
   const partners=S.ranked.filter(t=>t.rid!==me.rid).map(t=>({t,score:(me.strRank[weakest]-t.strRank[weakest])+(t.strRank[strongest]-me.strRank[strongest])})).sort((a,b)=>b.score-a.score).slice(0,3);
-  let h=srcNote()+`<div class="grid kpis">
+  let h=srcNote()+boletaHTML(me)+`<div class="grid kpis mt">
     <div class="card kpi"><div class="l">Fuerza de plantilla</div><div class="v">${me.strRank.TOT}° <span class="sub">de ${n}</span></div><div class="d">${f1(me.strTot)} pts/sem con tu mejor alineación</div></div>
     <div class="card kpi"><div class="l">Tu posición más fuerte</div><div class="v">${strongest}</div><div class="d">${me.strRank[strongest]}° de la liga</div></div>
     <div class="card kpi"><div class="l">Tu posición más débil</div><div class="v neg">${weakest}</div><div class="d">${me.strRank[weakest]}° de la liga</div></div>
@@ -1164,7 +1242,7 @@ function ssGenHTML(){
   const pos=UI.ssPos||'ALL',av=UI.ssAv||'all',show=UI.ssShow||60;
   let list=(pos==='ALL'?POS.flatMap(ps=>g[ps]).sort((a,b)=>b._pr-a._pr):g[pos]).filter(p=>av==='all'||(av==='owned'&&p.owner!=null)||(av==='free'&&p.owner==null));
   const tot=list.length;list=list.slice(0,show);
-  const card=(arr,title,sub,kind)=>`<div class="card"><h2>${title}</h2><p class="sub" style="margin-top:-6px">${sub}</p>${arr.length?arr.map(p=>`<div class="rec"><div>${photo(p,34)} ${pp(p.pos)} ${pname(p)} <span class="sub">· ${ownerTxt(p)}</span><div class="why">${p.opp?(dvpTag(p)||'vs '+esc(p.opp))+' · ':''}proy. <b style="color:var(--text)">${f1(p._pr)}</b> vs ${f1(p.avg)} de promedio · ${p.pos}${p._rk} de la semana</div></div><div class="gain" style="color:var(--${kind==='t'?'bad':'good'})">${kind==='t'?'':'+'}${f1(p._pr-p.avg)}</div></div>`).join(''):'<p class="sub">Nada destacable esta semana.</p>'}</div>`;
+  const card=(arr,title,sub,kind)=>`<div class="card"><h2>${title}</h2><p class="sub" style="margin-top:-6px">${sub}</p>${arr.length?arr.map(p=>`<div class="rec"><div>${photo(p,34)} ${pp(p.pos)} ${pname(p)} <span class="sub">· ${ownerTxt(p)}</span><div class="why">${p.opp?(dvpTag(p)||'vs '+esc(p.opp))+' · ':''}proy. <b style="color:var(--text)">${f1(p._pr)}</b> vs ${f1(p.avg)} de promedio · ${p.pos}${p._rk} de la semana${kind!=='t'&&injStarOf(p)?` · 🩹 su titular ${esc(injStarOf(p).name)} está fuera (${esc(injStarOf(p).inj)})`:''}</div></div><div class="gain" style="color:var(--${kind==='t'?'bad':'good'})">${kind==='t'?'':'+'}${f1(p._pr-p.avg)}</div></div>`).join(''):'<p class="sub">Nada destacable esta semana.</p>'}</div>`;
   return byeBanner()+`<div class="grid half">${card(sorp,'😮 Sorpresas: arráncalos','Proyectados muy arriba de su promedio, casi siempre por un rival débil.','s')}${card(tramp,'🪤 Trampas: cuidado con estos','Titulares de siempre con una semana complicada.','t')}</div>
   <div class="card mt"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>Start/Sit general · semana ${S.wk}</span>${isAdmin()?`<button type="button" class="ghost" onclick="openShare('carrusel')">🎠 Carrusel para Instagram</button>`:''}</h2><div class="note" style="margin:-6px 0 12px">${S.projOk?'Proyecciones de Sleeper con la puntuación de tu liga.':'Sin proyecciones de Sleeper: uso la forma ajustada por el rival.'} El veredicto compara a cada jugador con los titulares que usa toda la liga en su posición.</div>
   <div class="ctrl"><div class="chips">${['ALL',...POS].map(p=>`<button type="button" class="chip ${pos===p?'on':''}" data-sp="${p}">${p==='ALL'?'Todos':p}</button>`).join('')}</div><select id="ssAv"><option value="all" ${av==='all'?'selected':''}>Todos</option><option value="owned" ${av==='owned'?'selected':''}>Con dueño</option><option value="free" ${av==='free'?'selected':''}>Libres</option></select></div>
@@ -1319,7 +1397,8 @@ async function slideBg(c,label,page){
 function ssReason(p,kind){
   const dv=!(p.dvp&&p.opp)?'':p.dvp.rk<=12?` ${p.opp} es la ${p.dvp.rk}ª defensa que más puntos permite a ${p.pos} (${f1(p.dvp.pts)} por partido).`:p.dvp.rk>=21?` Enfrente está ${p.opp}, una de las defensas más duras contra ${p.pos} (solo ${f1(p.dvp.pts)} por partido).`:` ${p.opp} permite ${f1(p.dvp.pts)} pts por partido a ${p.pos}, un rival promedio.`;
   const src=S.projOk?'Proyectado':'Estimado';
-  return kind==='start'?`${src} con ${f1(p._pr)} pts, ${f1(p._pr-p.avg)} arriba de su promedio de ${f1(p.avg)}.${dv} Esta semana es el ${p.pos}${p._rk} de la jornada.`
+  const io=kind==='start'?injStarOf(p):null;
+  return kind==='start'?`${io?`Su titular ${io.name} está fuera (${io.inj}). `:''}${src} con ${f1(p._pr)} pts, ${f1(p._pr-p.avg)} arriba de su promedio de ${f1(p.avg)}.${dv} Esta semana es el ${p.pos}${p._rk} de la jornada.`
     :`Promedia ${f1(p.avg)}, pero esta semana: ${f1(p._pr)} pts ${S.projOk?'proyectados':'estimados'}.${dv} Esta semana cae a ${p.pos}${p._rk}.`;
 }
 async function slideCover(c,ns,nt){
@@ -1390,9 +1469,11 @@ async function openShare(kind){
   await fontsReady();UI.fmt=UI.fmt||'post';IMG.H=(UI.fmt==='story'&&kind!=='carrusel')?1920:1350;
   let defs;if(kind==='trade')defs=[['trade','Propuesta de trade',drawTrade]];
   else if(kind==='carrusel')defs=carouselDefs();
+  else if(kind==='boleta')defs=[['boleta','Boleta de '+S.T[S.highlight].name,drawBoleta]];
   else{defs=[['tabla','Tabla general',drawTabla],['power','Power Ranking RodoPicks',drawPower],['top','Lo mejor de la semana',drawTop]];
     if(S.wk&&S.curGames.length&&S.showW===S.cur)defs.push(['previa','Previa de la semana',drawPrevia]);
     if(S.wk)defs.push(['startsit','Start/Sit de la semana',drawSSGen],['startsit-equipo','Start/Sit de '+S.T[S.highlight].name,drawSS]);
+    defs.push(['boleta','Boleta de '+S.T[S.highlight].name,drawBoleta]);
     defs.push(['waivers','Waivers de la semana',drawWaiv],['premios','Premios de la temporada',drawPremios])}
   const items=[];const lw=lastWeek();
   for(const [id,label,fn] of defs){const cv=document.createElement('canvas');cv.width=IMG.W;cv.height=IMG.H;

@@ -189,6 +189,12 @@ export async function buildContent({ fetch: f = globalThis.fetch, week = null, t
   sorp.sort((a, b) => (b._pr - b.avg) - (a._pr - a.avg));
   tramp.sort((a, b) => (a._pr - a.avg) - (b._pr - b.avg));
 
+  // Titulares lesionados por equipo y posición (para explicar suplentes con carga de trabajo)
+  const injStar = {};
+  Object.values(P).filter((p) => isHurt(p) && p.team && ((mk[p.id] && mk[p.id].v >= 3000) || (avgRk[p.id] || 999) <= per[p.pos])).forEach((p) => { const k = p.team + '|' + p.pos; if (!injStar[k] || (injStar[k].avg || 0) < p.avg) injStar[k] = p; });
+  const mateOut = (p) => { const st = p.team ? injStar[p.team + '|' + p.pos] : null; return st && st.id !== p.id && (st.avg || 0) > (p.avg || 0) ? st : null; };
+  const outTxt = (p) => { const st = mateOut(p); return st ? `Su titular ${st.name} está fuera (${st.inj}). ` : ''; };
+
   // ---- 9. Salida pública
   const dvpTxt = (p) => (!p.dvp ? null : p.dvp.rk <= 8 ? 'favorable' : p.dvp.rk >= 25 ? 'difícil' : 'neutral');
   const out = (p) => {
@@ -207,6 +213,7 @@ export async function buildContent({ fetch: f = globalThis.fetch, week = null, t
       partidosJugados: p.games,
       defensaRival: p.dvp ? { lugarQueMasPermite: p.dvp.rk, puntosPermitidosPorPartido: r1(p.dvp.pts), lectura: dvpTxt(p) } : null,
       lesion: p.inj || null,
+      titularFuera: mateOut(p) ? { jugador: mateOut(p).name, estado: mateOut(p).inj } : null,
       semanaDescanso: p.bye,
       camposFaltantes: falta,
     };
@@ -218,13 +225,13 @@ export async function buildContent({ fetch: f = globalThis.fetch, week = null, t
   RANK_POS.forEach((ps) => {
     rankings[ps] = g[ps].slice(0, top ? Math.min(top, RANK_DEPTH[ps]) : RANK_DEPTH[ps]).map((p) => ({
       rank: p._rk, ...out(p), nivel: TIER_TXT[p._tier],
-      justificacion: `${ps}${p._rk} de la semana por ${estTxt(p)}${vsTxt(p)}; promedia ${r1(p.avg)} en ${p.games} partidos y ${r1(p.l3)} en los últimos 3.`,
+      justificacion: `${outTxt(p)}${ps}${p._rk} de la semana por ${estTxt(p)}${vsTxt(p)}; promedia ${r1(p.avg)} en ${p.games} partidos y ${r1(p.l3)} en los últimos 3.`,
     }));
     if (!rankings[ps].length) faltantes.push({ campo: `rankings.${ps}`, motivo: 'sin jugadores con datos suficientes' });
   });
 
   const arrancar = sorp.slice(0, 10).map((p) => ({ ...out(p), rankSemana: `${p.pos}${p._rk}`, recomendacion: 'Arrancar', nivel: TIER_TXT[p._tier],
-    justificacion: `${cap(estTxt(p))}${vsTxt(p)}, ${r1(p._pr - p.avg)} pts arriba de su promedio de ${r1(p.avg)}. Esta semana queda como ${p.pos}${p._rk}, nivel titular en una liga de ${LIGA.equipos}.` }));
+    justificacion: `${outTxt(p)}${cap(estTxt(p))}${vsTxt(p)}, ${r1(p._pr - p.avg)} pts arriba de su promedio de ${r1(p.avg)}. Esta semana queda como ${p.pos}${p._rk}, nivel titular en una liga de ${LIGA.equipos}.` }));
   const sentar = tramp.filter((p) => p._tier === 'duda' || p._tier === 'sit').slice(0, 10).map((p) => ({ ...out(p), rankSemana: `${p.pos}${p._rk}`, recomendacion: 'Sentar', nivel: TIER_TXT[p._tier],
     justificacion: `Suele ser ${p.pos}${avgRk[p.id]} por promedio (${r1(p.avg)}), pero esta semana: ${estTxt(p)}${vsTxt(p)}. Cae a ${p.pos}${p._rk}, por debajo de lo que alinea una liga de ${LIGA.equipos}.` }));
   const riesgo = tramp.filter((p) => p._tier === 'elite' || p._tier === 'start').slice(0, 10).map((p) => ({ ...out(p), rankSemana: `${p.pos}${p._rk}`, recomendacion: 'Arrancar con expectativas bajas', nivel: TIER_TXT[p._tier],
@@ -232,8 +239,6 @@ export async function buildContent({ fetch: f = globalThis.fetch, week = null, t
 
   // Sleepers: mismas señales que el tablero. Sin liga no se sabe quién está libre,
   // así que se consideran jugadores fuera del nivel titular por promedio.
-  const injStar = {};
-  Object.values(P).filter((p) => isHurt(p) && p.team && ((mk[p.id] && mk[p.id].v >= 3000) || (avgRk[p.id] || 999) <= per[p.pos])).forEach((p) => { const k = p.team + '|' + p.pos; if (!injStar[k] || (injStar[k].avg || 0) < p.avg) injStar[k] = p; });
   const sleepers = Object.values(P).filter((p) => !isHurt(p) && p.team && (p.games > 0 || mk[p.id]) && (avgRk[p.id] || 999) > per[p.pos] * 1.5 && RANK_POS.includes(p.pos))
     .map((p) => {
       const why = []; let sc = 0;
@@ -248,7 +253,7 @@ export async function buildContent({ fetch: f = globalThis.fetch, week = null, t
 
   const waivers = trendOk ? trAdd.map((x) => P[x.player_id]).filter((p) => p && !isHurt(p) && RANK_POS.concat(['K', 'DEF']).includes(p.pos))
     .slice(0, 15).map((p) => ({ ...out(p), altas24h: addMap[p.id] || 0, bajas24h: dropMap[p.id] || 0, descansaEstaSemana: onBye(p),
-      justificacion: `${(addMap[p.id] || 0).toLocaleString('es-MX')} altas en Sleeper en las últimas 24 h${p.games ? `; promedia ${r1(p.avg)} pts PPR y ${r1(p.l3)} en los últimos 3` : ''}${p.proj != null ? `; proyección de ${r1(p.proj)} esta semana` : ''}${onBye(p) ? '; ojo: descansa esta semana' : ''}.` })) : [];
+      justificacion: `${outTxt(p)}${(addMap[p.id] || 0).toLocaleString('es-MX')} altas en Sleeper en las últimas 24 h${p.games ? `; promedia ${r1(p.avg)} pts PPR y ${r1(p.l3)} en los últimos 3` : ''}${p.proj != null ? `; proyección de ${r1(p.proj)} esta semana` : ''}${onBye(p) ? '; ojo: descansa esta semana' : ''}.` })) : [];
   if (!waivers.length) faltantes.push({ campo: 'waivers', motivo: trendOk ? 'sin jugadores sanos en tendencia' : 'Sleeper no entregó tendencias' });
   if (!sleepers.length) faltantes.push({ campo: 'sleepers', motivo: 'ningún jugador cumple las señales esta semana' });
   if (!projOk) faltantes.push({ campo: 'proyeccionPPR', motivo: 'Sleeper no entregó proyecciones de la semana; se usan estimados por forma (campo origenEstimado)' });
