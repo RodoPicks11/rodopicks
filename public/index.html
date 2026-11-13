@@ -192,6 +192,7 @@ td.sep{color:var(--muted);font-size:12px;font-weight:600;padding-top:16px}
 .bbig.good,.bgr.good{color:var(--good)}.bbig.blue,.bgr.blue{color:var(--blue)}.bbig.warn,.bgr.warn{color:var(--warn)}.bbig.bad,.bgr.bad{color:var(--bad)}
 .btip{padding:9px 12px;border-left:4px solid var(--line);background:var(--panel2);border-radius:8px;margin-bottom:8px;font-size:14px}.btip.good{border-color:var(--good)}.btip.warn{border-color:var(--warn)}.btip.bad{border-color:var(--bad)}
 @media(max-width:700px){.boleta .bwrap{grid-template-columns:1fr}}
+.lsel{max-width:260px;font-size:13px;padding:5px 8px}.badge.bad{background:var(--bad);color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px}
 .carhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 @media(max-width:600px){header{padding:16px 14px 12px;gap:12px}.brand{gap:12px}.logo{width:64px}h1{font-size:21px}h1 small{font-size:10px;letter-spacing:1px}
 form{width:100%}form input{flex:1;width:auto;min-width:0}form select{flex:1;min-width:0}form button.ghost{padding:8px 10px;font-size:14px}
@@ -403,7 +404,7 @@ function build({league,users,rosters,byWeek,cur,regEnd,myId,demo,tx,players,trAd
   [...ranked].sort((a,b)=>b.ap-a.ap||b.pf-a.pf).forEach((t,i)=>t.pwr=i+1);
   const showW=byWeek[cur]?cur:(played.length?Math.max(...played):null);
   let curGames=[];const startersBy={};
-  if(showW&&byWeek[showW]){const g={};byWeek[showW].forEach(m=>{if(!T[m.roster_id])return;startersBy[m.roster_id]=m.starters||[];if(m.matchup_id==null)return;(g[m.matchup_id]=g[m.matchup_id]||[]).push(m)});curGames=Object.values(g).filter(p=>p.length===2);}
+  if(showW&&byWeek[showW]){const g={};byWeek[showW].forEach(m=>{if(!T[m.roster_id])return;startersBy[m.roster_id]=m.starters||[];T[m.roster_id].sl=m.starters||[];if(m.matchup_id==null)return;(g[m.matchup_id]=g[m.matchup_id]||[]).push(m)});curGames=Object.values(g).filter(p=>p.length===2);}
 
   // ----- jugadores -----
   const sc=league.scoring_settings&&Object.keys(league.scoring_settings).length?league.scoring_settings:null;
@@ -981,15 +982,40 @@ async function drawBoleta(c){
   let y=1010;tips.slice(0,4).forEach(t=>{if(y>IMG.H-150)return;c.fillStyle=t.t==='good'?IMG.good:t.t==='bad'?IMG.bad:'#F2C14E';c.beginPath();c.arc(72,y-9,8,0,Math.PI*2);c.fill();
     c.fillStyle=IMG.cream;c.font=`500 25px ${BF}`;const lines=wrapT(c,t.x,96,y,W-160,33,3);y+=lines*33+22});
 }
+function sleeperLineup(me){
+  if(!me.sl||!me.sl.length)return null;
+  const slots=(S.league.roster_positions||[]).filter(s=>!['BN','IR','TAXI'].includes(s));
+  const out=[];slots.forEach((s,i)=>{if(!ELIG[s])return;const id=me.sl[i];out.push({slot:s,p:id&&id!=='0'?S.PL[id]||null:null})});
+  return out.length?out:null}
+const lineKey=me=>`rp_line_${S.league.league_id}_${me.rid}_${S.wk||S.showW}`;
+function lineSum(line){return line.reduce((a,s)=>a+(s.p?(s.p._wp||0):0),0)}
+function lineIssue(s){const p=s.p;if(!p)return 'lugar vacío';if(BADINJ.includes(p.inj))return p.inj;if(S.wk&&onBye(p,S.wk))return 'descansa';return ''}
 function vEquipo(){
   const me=S.T[S.highlight];const n=S.n;
   const roster=me.players.map(id=>S.PL[id]).filter(Boolean);
-  const wkLine=S.wk?bestLineup(roster.filter(p=>!isHurt(p)&&!onBye(p,S.wk)),S.rp,'form'):me.lineup;
+  roster.forEach(p=>{p._wp=S.wk?(isHurt(p)||onBye(p,S.wk)?0:ssPr(p)):p.form});
+  const sugLine=bestLineup(roster.filter(p=>!isHurt(p)&&!(S.wk&&onBye(p,S.wk))),S.rp,'_wp');
+  const slLine=sleeperLineup(me);
+  let myIds=null;try{myIds=JSON.parse(store.get(lineKey(me))||'null')}catch(e){}
+  const base0=slLine||sugLine;
+  if(!Array.isArray(myIds)||myIds.length!==base0.length)myIds=base0.map(s=>s.p?s.p.id:null);
+  const myLine=base0.map((s,i)=>({slot:s.slot,p:myIds[i]&&S.PL[myIds[i]]&&me.players.includes(myIds[i])?S.PL[myIds[i]]:null}));
+  const mode=UI.lineMode||(slLine?'sleeper':'sug');
+  const wkLine=mode==='sleeper'&&slLine?slLine:mode==='mine'?myLine:sugLine;
+  UI._line={me,myLine,base0};
   const inLine=new Map(wkLine.filter(s=>s.p).map(s=>[s.p.id,s.slot]));
   const benchP=roster.filter(p=>!inLine.has(p.id)&&!isHurt(p)).sort((a,b)=>POS.indexOf(a.pos)-POS.indexOf(b.pos)||b.form-a.form);
   const hurtP=roster.filter(p=>isHurt(p)).sort((a,b)=>b.value-a.value);
-  const row=(p,slot)=>`<tr><td>${slot?`<span class="sub">${SLOTNAME[slot]||slot}</span>`:'<span class="sub">BN</span>'}</td><td>${photo(p,28)} ${pp(p.pos)} ${pname(p)}${p.starter?' <span class="sub">· titular sem. '+S.showW+'</span>':''}</td><td class="num">${p.pos}${p.posRank||'—'}</td><td class="num"><b>${f1(p.total)}</b></td><td class="num">${p.games}</td><td class="num">${f1(p.avg)}</td><td class="num">${f1(p.l3)}</td><td class="num">${f1(p.form)}</td><td class="num">${p.bye?'S'+p.bye:'—'}</td><td>${pspark(p)}</td></tr>`;
+  const iss=p=>{const x=lineIssue({p});return x?` <span class="badge bad">${x==='descansa'?'BYE':esc(x)}</span>`:''};
+  const pick=(i,slot,cur)=>`<select class="lsel" data-li="${i}">${['<option value="">— vacío —</option>'].concat(roster.filter(q=>ELIG[slot].includes(q.pos)).sort((a,b)=>b._wp-a._wp).map(q=>`<option value="${q.id}" ${cur&&cur.id===q.id?'selected':''}>${esc(q.name)} · ${q.pos} · ${S.wk?'proy. ':''}${f1(q._wp)}${lineIssue({p:q})?' · '+(lineIssue({p:q})==='descansa'?'BYE':q.inj):''}</option>`)).join('')}</select>`;
+  const prow=(p,slot,i)=>mode==='mine'&&i!=null?`<tr><td><span class="sub">${SLOTNAME[slot]||slot}</span></td><td>${p?photo(p,28)+' ':''}${pick(i,slot,p)}${p?iss(p):''}</td><td class="num"><b>${p?f1(p._wp):'—'}</b></td><td class="num">${p?p.pos+(p.posRank||'—'):''}</td><td class="num">${p?f1(p.total):''}</td><td class="num">${p?p.games:''}</td><td class="num">${p?f1(p.avg):''}</td><td class="num">${p?f1(p.l3):''}</td><td class="num">${p?f1(p.form):''}</td><td class="num">${p&&p.bye?'S'+p.bye:'—'}</td><td>${p?pspark(p):''}</td></tr>`
+    :!p?`<tr><td><span class="sub">${SLOTNAME[slot]||slot}</span></td><td colspan="10"><span class="badge bad">lugar vacío</span></td></tr>`:row(p,slot);
+  const row=(p,slot)=>`<tr><td>${slot?`<span class="sub">${SLOTNAME[slot]||slot}</span>`:'<span class="sub">BN</span>'}</td><td>${photo(p,28)} ${pp(p.pos)} ${pname(p)}${p.starter?' <span class="sub">· titular sem. '+S.showW+'</span>':''}</td><td class="num"><b>${f1(p._wp)}</b></td><td class="num">${p.pos}${p.posRank||'—'}</td><td class="num"><b>${f1(p.total)}</b></td><td class="num">${p.games}</td><td class="num">${f1(p.avg)}</td><td class="num">${f1(p.l3)}</td><td class="num">${f1(p.form)}</td><td class="num">${p.bye?'S'+p.bye:'—'}</td><td>${pspark(p)}</td></tr>`;
   const empty=wkLine.filter(s=>!s.p);
+  const tS=slLine?lineSum(slLine):null,tG=lineSum(sugLine),tM=lineSum(myLine);
+  const probs=slLine?slLine.filter(s=>lineIssue(s)):[];
+  const swaps=slLine?(()=>{const inS=new Set(slLine.filter(s=>s.p).map(s=>s.p.id)),inG=new Set(sugLine.filter(s=>s.p).map(s=>s.p.id));
+    const outs=slLine.filter(s=>s.p&&!inG.has(s.p.id)).map(s=>s.p),ins=sugLine.filter(s=>s.p&&!inS.has(s.p.id)).map(s=>s.p);return {outs,ins}})():null;
   const heatC=r=>{const t=(r-1)/Math.max(1,n-1);const g=[61,190,139],b=[229,97,90];const c=g.map((v,i)=>Math.round(v+(b[i]-v)*t));return `rgba(${c.join(',')},${0.85-0.35*Math.abs(t-.5)})`};
   const rankedStr=[...S.ranked].sort((a,b)=>a.strRank.TOT-b.strRank.TOT);
   const weakest=POS.filter(p=>p!=='K'&&p!=='DEF').sort((a,b)=>me.strRank[b]-me.strRank[a])[0];
@@ -1002,13 +1028,19 @@ function vEquipo(){
     <div class="card kpi"><div class="l">Tu posición más débil</div><div class="v neg">${weakest}</div><div class="d">${me.strRank[weakest]}° de la liga</div></div>
     <div class="card kpi"><div class="l">Jugadores en plantilla</div><div class="v">${roster.length}</div><div class="d">${roster.filter(p=>p.inj).length} con reporte de lesión</div></div>
   </div>
-  <div class="card mt"><h2>${S.wk?`Mejor alineación para la semana ${S.wk}`:'Mejor alineación por forma'} <span class="sub">· calculada sin lesionados${S.wk?' ni equipos en bye':''}, no necesariamente la que tienes puesta en Sleeper</span></h2>
-   ${empty.length?`<div class="warnbox">Te faltan jugadores para ${empty.map(s=>SLOTNAME[s.slot]||s.slot).join(', ')}.</div>`:''}
-   <div class="scroll"><table><thead><tr><th>Slot</th><th>Jugador</th><th class="num">Rank pos</th><th class="num">Total</th><th class="num">PJ</th><th class="num">Prom</th><th class="num">Últ. 3</th><th class="num">Forma</th><th class="num">Bye</th><th>Semanas</th></tr></thead><tbody>
-   ${wkLine.filter(s=>s.p).map(s=>row(s.p,s.slot)).join('')}
-   <tr><td colspan="10" style="color:var(--muted);font-size:12px;font-weight:600;padding-top:16px">BANCA</td></tr>
+  <div class="card mt"><h2>Alineación ${S.wk?`de la semana ${S.wk}`:'por forma'} <span class="sub">· ${S.wk?(S.projOk?'proyección de Sleeper':'estimado por forma y rival'):'puntos por forma'}</span></h2>
+   <div class="chips" style="margin-bottom:12px">${slLine?`<button type="button" class="chip ${mode==='sleeper'?'on':''}" data-lm="sleeper">En Sleeper · ${f1(tS)}</button>`:''}<button type="button" class="chip ${mode==='sug'?'on':''}" data-lm="sug">Sugerida RodoPicks · ${f1(tG)}</button><button type="button" class="chip ${mode==='mine'?'on':''}" data-lm="mine">✏️ Armar la mía · ${f1(tM)}</button></div>
+   ${mode==='sleeper'?`<p class="sub" style="margin-top:-4px">Así la tienes puesta en Sleeper para la semana ${S.showW}.${tG-tS>=0.5?` La sugerida suma <b style="color:var(--good)">+${f1(tG-tS)}</b> pts proyectados.`:' Coincide con lo que te sugerimos o está muy cerca.'}</p>
+     ${probs.length?`<div class="warnbox">Ojo: en tu alineación de Sleeper ${probs.map(s=>s.p?`${esc(s.p.name)} (${lineIssue(s)==='descansa'?'descansa esta semana':esc(lineIssue(s))})`:`el lugar ${SLOTNAME[s.slot]||s.slot} está vacío`).join(', ')}.</div>`:''}
+     ${swaps&&swaps.ins.length?`<div class="note" style="margin:0 0 10px">Cambios sugeridos: mete a ${swaps.ins.map(p=>`<b>${esc(p.name)}</b> (${f1(p._wp)})`).join(', ')} y saca a ${swaps.outs.map(p=>`<b>${esc(p.name)}</b> (${f1(p._wp)})`).join(', ')}.</div>`:''}`
+   :mode==='mine'?`<p class="sub" style="margin-top:-4px">Elige a quién poner en cada lugar; si eliges a alguien que ya está en otro lugar, se intercambian. Proyección total: <b style="color:var(--text)">${f1(tM)}</b>${Math.abs(tG-tM)>=0.5?` · la sugerida suma ${tG>tM?'+':''}${f1(tG-tM)}`:''}. <button type="button" class="ghost" id="lnReset" style="padding:4px 10px;font-size:13px">↺ Reiniciar</button></p><p class="note" style="margin:0 0 10px">Esto solo te ayuda a comparar: los cambios no se guardan en Sleeper, ahí los tienes que hacer tú.</p>`
+   :`<p class="sub" style="margin-top:-4px">La que más suma con tu plantilla, sin lesionados${S.wk?' ni equipos que descansan':''}.</p>`}
+   ${empty.length&&mode!=='sleeper'?`<div class="warnbox">Te faltan jugadores para ${empty.map(s=>SLOTNAME[s.slot]||s.slot).join(', ')}.</div>`:''}
+   <div class="scroll"><table><thead><tr><th>Slot</th><th>Jugador</th><th class="num">${S.wk?'Proy.':'Forma'}</th><th class="num">Rank pos</th><th class="num">Total</th><th class="num">PJ</th><th class="num">Prom</th><th class="num">Últ. 3</th><th class="num">Forma</th><th class="num">Bye</th><th>Semanas</th></tr></thead><tbody>
+   ${wkLine.map((s,i)=>prow(s.p,s.slot,i)).join('')}
+   <tr><td colspan="11" style="color:var(--muted);font-size:12px;font-weight:600;padding-top:16px">BANCA</td></tr>
    ${benchP.map(p=>row(p,null)).join('')}
-   ${hurtP.length?`<tr><td colspan="10" style="color:var(--bad);font-size:12px;font-weight:600;padding-top:16px">LESIONADOS / IR · fuera de todos los análisis</td></tr>${hurtP.map(p=>row(p,me.reserve.includes(p.id)?'IR':null)).join('')}`:''}</tbody></table></div></div>
+   ${hurtP.length?`<tr><td colspan="11" style="color:var(--bad);font-size:12px;font-weight:600;padding-top:16px">LESIONADOS / IR · fuera de todos los análisis</td></tr>${hurtP.map(p=>row(p,me.reserve.includes(p.id)?'IR':null)).join('')}`:''}</tbody></table></div></div>
   <div class="card mt"><h2>Fuerza por posición en toda la liga <span class="sub">· lugar de cada equipo según los puntos por partido de su mejor alineación</span></h2>
    <div class="scroll"><table class="heat"><thead><tr><th>Equipo</th>${POS.map(p=>`<th class="num" style="text-align:center">${p}</th>`).join('')}<th class="num" style="text-align:center">TOTAL</th></tr></thead><tbody>
    ${rankedStr.map(t=>`<tr class="${t.rid===me.rid?'mine':''}"><td><b>${esc(t.name)}</b></td>${POS.concat(['TOT']).map(p=>`<td class="c" style="background:${heatC(t.strRank[p])};color:#0E1626" title="${p==='TOT'?f1(t.strTot):f1(t.str[p])} pts/sem">${t.strRank[p]}°</td>`).join('')}</tr>`).join('')}
@@ -1019,6 +1051,11 @@ function vEquipo(){
    ${partners.map(({t})=>`<div class="rec"><div><b>${esc(t.name)}</b><div class="why">${weakest}: ${t.strRank[weakest]}° de la liga · ${strongest}: ${t.strRank[strongest]}° de la liga</div></div><div class="why">${esc(t.owner)}</div></div>`).join('')}
   </div>`;
   $('#app').innerHTML=byeBanner()+h;
+  $('#app').querySelectorAll('[data-lm]').forEach(b=>b.onclick=()=>{UI.lineMode=b.dataset.lm;vEquipo()});
+  const L=UI._line;const save=ids=>{store.set(lineKey(L.me),JSON.stringify(ids))};
+  $('#app').querySelectorAll('.lsel').forEach(sel=>sel.onchange=()=>{const ids=L.myLine.map(s=>s.p?s.p.id:null);const i=+sel.dataset.li,v=sel.value||null;
+    const j=v?ids.indexOf(v):-1;if(j>=0&&j!==i){if(ids[i]&&ELIG[L.myLine[j].slot].includes(S.PL[ids[i]].pos))ids[j]=ids[i];else ids[j]=null}ids[i]=v;save(ids);vEquipo()});
+  const rs=$('#lnReset');if(rs)rs.onclick=()=>{try{localStorage.removeItem(lineKey(L.me))}catch(e){}vEquipo()};
 }
 
 // ---------- pestaña MOVIMIENTOS ----------
